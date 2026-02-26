@@ -90,36 +90,36 @@ export function App() {
     if (activePaletteId === id) setActivePaletteId(next[0].id);
   }
 
-  var navItems = palettes.map(function (item) {
-    return { id: item.id, name: item.name };
-  });
-
   var colorError = parsed
     ? ''
     : 'Color format not recognized. Try #3b82f6, rgb(59,130,246), hsl(217,91%,60%), or oklch(0.62 0.19 259).';
 
   return (
     <div class="page-wrap">
-      <Nav palettes={navItems} activePaletteId={activePaletteId} onPaletteChange={setActivePaletteId} />
-      <Hero
-        onJumpToGenerator={function () {
-          document.getElementById('generator')?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
-      <WhyOklch oklchScale={scale} hslScale={hslScale} />
-      <Generator
-        palettes={palettes}
-        activePaletteId={activePaletteId}
-        activeHex={activePalette.color}
-        colorError={colorError}
-        scale={scale}
-        onSelect={setActivePaletteId}
-        onRename={renamePalette}
-        onColorChange={updateColor}
-        onAdd={addPalette}
-        onRemove={removePalette}
-      />
-      <ExportSection paletteName={activePalette.name || 'palette'} scale={scale} />
+      <Nav />
+      <div id="hero">
+        <Hero />
+      </div>
+      <div id="why-oklch">
+        <WhyOklch oklchScale={scale} hslScale={hslScale} />
+      </div>
+      <div id="generator">
+        <Generator
+          palettes={palettes}
+          activePaletteId={activePaletteId}
+          activeHex={activePalette.color}
+          colorError={colorError}
+          scale={scale}
+          onSelect={setActivePaletteId}
+          onRename={renamePalette}
+          onColorChange={updateColor}
+          onAdd={addPalette}
+          onRemove={removePalette}
+        />
+      </div>
+      <div id="export">
+        <ExportSection paletteName={activePalette.name || 'palette'} scale={scale} />
+      </div>
       <HowItWorks />
       <Footer />
     </div>

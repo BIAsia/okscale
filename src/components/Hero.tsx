@@ -1,17 +1,26 @@
-type Props = {
-  onJumpToGenerator: () => void;
-};
-
-export function Hero(props: Props) {
+export function Hero() {
   return (
-    <section id="hero" class="hero-section section">
-      <div class="accent-strip" aria-hidden="true" />
-      <p class="hero-kicker">Perceptual Color Infrastructure</p>
-      <h1>OKSCALE</h1>
-      <p class="hero-subtitle">Perceptually uniform color scales for modern design systems. Powered by Oklch.</p>
-      <button type="button" class="cta" onClick={props.onJumpToGenerator}>
-        Build your scale
-      </button>
+    <section
+      class="section"
+      style={{ minHeight: '100vh', paddingTop: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+    >
+      <div class="container flex flex-col items-center" style={{ textAlign: 'center' }}>
+        <h1 class="text-hero">OKSCALE</h1>
+        <p class="text-nav mt-sm" aria-hidden="true">
+          ---
+        </p>
+        <p class="text-body-lg mt-md">Perceptually uniform color scales for modern design systems. Powered by Oklch.</p>
+        <p class="text-nav mt-sm text-muted">Color Scales, Design Tokens, Oklch</p>
+        <div class="mt-md" style={{ width: '80px', height: '2px', background: 'var(--ok-accent)' }} aria-hidden="true" />
+      </div>
+      <a
+        href="#why-oklch"
+        class="text-nav"
+        style={{ position: 'absolute', bottom: '32px', left: '50%', transform: 'translateX(-50%)', textDecoration: 'none', color: '#000' }}
+        aria-label="Scroll to Why Oklch"
+      >
+        ↓
+      </a>
     </section>
   );
 }
