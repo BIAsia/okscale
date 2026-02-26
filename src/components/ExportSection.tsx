@@ -85,7 +85,7 @@ export function ExportSection(props: ExportSectionProps) {
           })}
         </div>
 
-        <pre class="code-block" style="max-height: 400px; overflow-y: auto;"><code>{code}</code></pre>
+        <pre class="code-block export-code"><code>{code}</code></pre>
 
         <div class="flex gap-sm">
           <button type="button" class="btn btn-primary" onClick={copyCode}>

@@ -9,7 +9,7 @@ export function Footer() {
             OKSCALE
           </a>
 
-          <nav class="flex gap-md" aria-label="Footer">
+          <nav class="flex gap-md footer-links" aria-label="Footer">
             <a class="text-nav" href="#generator">
               Generator
             </a>

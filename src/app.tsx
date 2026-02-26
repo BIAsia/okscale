@@ -65,6 +65,31 @@ export function App() {
     [palette]
   );
 
+  useEffect(function () {
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    var sections = document.querySelectorAll('.section');
+    sections.forEach(function (section) {
+      observer.observe(section);
+    });
+
+    return function () {
+      sections.forEach(function (section) {
+        observer.unobserve(section);
+      });
+      observer.disconnect();
+    };
+  }, []);
+
   var colorError = parsedRgb
     ? ''
     : 'Color format not recognized. Try #3b82f6, rgb(59,130,246), hsl(217,91%,60%), or oklch(0.62 0.19 259).';

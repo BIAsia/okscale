@@ -41,7 +41,7 @@ export function HowItWorks() {
               Start with your brand color above, or explore the Oklch color space.
             </p>
           </div>
-          <div class="flex gap-sm" style="flex-wrap: wrap;">
+          <div class="flex gap-sm cta-actions" style="flex-wrap: wrap;">
             <a class="btn btn-accent" href="#generator">
               Try the Generator
             </a>

@@ -1,8 +1,8 @@
 export function Hero() {
   return (
     <section
-      class="section"
-      style={{ minHeight: '100vh', paddingTop: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+      class="section hero-section"
+      style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
     >
       <div class="container flex flex-col items-center" style={{ textAlign: 'center' }}>
         <h1 class="text-hero">OKSCALE</h1>
