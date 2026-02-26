@@ -7,7 +7,7 @@ import { HowItWorks } from './components/HowItWorks';
 import { Nav } from './components/Nav';
 import { WhyOklch } from './components/WhyOklch';
 import { parseColorInput, rgbToHex, rgbToOklch } from './lib/color';
-import { generateHslScale, generateScale } from './lib/scale';
+import { generateScale } from './lib/scale';
 
 var DEFAULT_PALETTES: PaletteItem[] = [
   { id: 'primary', name: 'primary', color: '#3b82f6' },
@@ -43,11 +43,6 @@ export function App() {
   var scale = useMemo(function () {
     var sourceRgb = parsed || parseColorInput('#3b82f6');
     return generateScale(rgbToOklch(sourceRgb!));
-  }, [previewHex]);
-
-  var hslScale = useMemo(function () {
-    var sourceRgb = parsed || parseColorInput('#3b82f6');
-    return generateHslScale(rgbToOklch(sourceRgb!));
   }, [previewHex]);
 
   useEffect(
@@ -100,9 +95,7 @@ export function App() {
       <div id="hero">
         <Hero />
       </div>
-      <div id="why-oklch">
-        <WhyOklch oklchScale={scale} hslScale={hslScale} />
-      </div>
+      <WhyOklch baseHex={previewHex} />
       <div id="generator">
         <Generator
           palettes={palettes}
