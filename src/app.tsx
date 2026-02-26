@@ -14,11 +14,15 @@ import type { ShadeMode } from './lib/shades';
 import type { ScaleColor } from './lib/scale';
 
 function applyTokens(scale: ScaleColor[]) {
+  if (!scale.length) return;
   var root = document.documentElement;
   scale.forEach(function (item) {
     root.style.setProperty('--ok-primary-' + item.step, item.hex);
   });
-  root.style.setProperty('--ok-accent', scale[5].hex);
+  var accent = scale[Math.min(5, scale.length - 1)];
+  if (accent) {
+    root.style.setProperty('--ok-accent', accent.hex);
+  }
 }
 
 export function App() {
@@ -59,13 +63,27 @@ export function App() {
 
   useEffect(
     function () {
-      if (!palette) return;
-      applyTokens(palette.primary.scale);
+      if (!palette || !palette.primary || !palette.primary.scale) return;
+      var primaryScale = palette.primary.scale;
+      var frame = window.requestAnimationFrame(function () {
+        applyTokens(primaryScale);
+      });
+      return function () {
+        window.cancelAnimationFrame(frame);
+      };
     },
     [palette]
   );
 
   useEffect(function () {
+    var sections = document.querySelectorAll('.section');
+    if (!('IntersectionObserver' in window)) {
+      sections.forEach(function (section) {
+        section.classList.add('visible');
+      });
+      return;
+    }
+
     var observer = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
@@ -77,7 +95,6 @@ export function App() {
       { threshold: 0.1 }
     );
 
-    var sections = document.querySelectorAll('.section');
     sections.forEach(function (section) {
       observer.observe(section);
     });

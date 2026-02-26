@@ -31,8 +31,10 @@ function interpolateHue(a: number, b: number, t: number): number {
 }
 
 export function WhyOklch(props: WhyOklchProps) {
-  var parsed = parseColorInput(props.baseHex) || parseColorInput('#3b82f6');
-  var base = rgbToOklch(parsed!);
+  var parsed = parseColorInput(props.baseHex);
+  var fallback = parseColorInput('#3b82f6');
+  var safeRgb = parsed || fallback || { r: 59, g: 130, b: 246 };
+  var base = rgbToOklch(safeRgb);
 
   var demoBase = { l: 0.65, c: 0.25, h: 250 };
   var hslScale = generateHslScale(demoBase);
@@ -178,7 +180,7 @@ export function WhyOklch(props: WhyOklchProps) {
               <strong>Complementary colors:</strong> Rotate hue by 180° for a perfect complement that matches perceived
               brightness.
             </p>
-            {renderSwatches([rgbToHex(parsed!), complement])}
+            {renderSwatches([rgbToHex(safeRgb), complement])}
           </article>
 
           <article class="card flex flex-col gap-sm">

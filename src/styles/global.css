@@ -439,10 +439,34 @@ body {
   color: #000;
   text-decoration: none;
   letter-spacing: -0.24px;
+  transition: color 0.2s ease;
 }
 
 .nav-links a:hover {
   color: var(--ok-accent);
+}
+
+.hero-scroll-indicator {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-decoration: none;
+  color: #000;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--color-transition), transform 0.2s ease;
+}
+
+.hero-scroll-indicator:hover {
+  border-color: var(--ok-accent);
+  color: var(--ok-accent);
+  transform: translateX(-50%) translateY(2px);
 }
 
 :focus-visible {
@@ -567,6 +591,29 @@ a:focus-visible {
 
   :root {
     --section-padding: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .section {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .card,
+  .btn-primary,
+  .btn-accent,
+  .swatch {
+    transition: none;
+  }
+
+  .hero-scroll-indicator {
+    transition: none;
   }
 }
 

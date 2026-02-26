@@ -21,6 +21,7 @@ type GeneratorProps = {
 function ratioGrade(ratio: number): string {
   if (ratio >= 7) return 'AAA';
   if (ratio >= 4.5) return 'AA';
+  if (ratio >= 3) return 'AA Large';
   return 'Fail';
 }
 
@@ -78,6 +79,9 @@ export function Generator(props: GeneratorProps) {
                 props.onColorChange((event.currentTarget as HTMLInputElement).value);
               }}
               placeholder="#3b82f6"
+              spellcheck={false}
+              aria-invalid={props.colorError ? 'true' : 'false'}
+              aria-describedby="generator-color-error"
             />
             <input
               class="color-native-input"
@@ -90,7 +94,11 @@ export function Generator(props: GeneratorProps) {
             <div class="color-preview-swatch" style={{ backgroundColor: previewHex }} title={previewHex} />
           </div>
           <p class="text-code text-muted">{formatOklch(props.primaryOklch)}</p>
-          {props.colorError ? <p class="text-body" style={{ color: '#b91c1c' }}>{props.colorError}</p> : null}
+          {props.colorError ? (
+            <p id="generator-color-error" class="text-body" style={{ color: '#b91c1c' }}>
+              {props.colorError}
+            </p>
+          ) : null}
         </div>
 
         <div class="card flex flex-col gap-md">
@@ -103,6 +111,7 @@ export function Generator(props: GeneratorProps) {
                   type="button"
                   key={mode.id}
                   class={active ? 'btn btn-primary' : 'btn btn-secondary'}
+                  aria-pressed={active ? 'true' : 'false'}
                   onClick={function () {
                     props.onShadeModeChange(mode.id);
                   }}
@@ -124,6 +133,7 @@ export function Generator(props: GeneratorProps) {
                   type="button"
                   key={item.id}
                   class={active ? 'btn btn-primary' : 'btn btn-secondary'}
+                  aria-pressed={active ? 'true' : 'false'}
                   onClick={function () {
                     props.onHarmonyTypeChange(item.id);
                   }}

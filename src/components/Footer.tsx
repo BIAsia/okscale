@@ -1,4 +1,6 @@
 export function Footer() {
+  var year = new Date().getFullYear();
+
   return (
     <footer class="section" style="padding: 48px 0;">
       <div class="section-inner flex flex-col gap-md">
@@ -24,7 +26,7 @@ export function Footer() {
             </a>
           </nav>
 
-          <p class="text-small text-muted">© 2026 OKScale. Built with Oklch.</p>
+          <p class="text-small text-muted">© {year} OKScale. Built with Oklch.</p>
         </div>
 
         <p class="text-small text-muted" style="text-align: center;">

@@ -88,7 +88,7 @@ export function ExportSection(props: ExportSectionProps) {
         <pre class="code-block export-code"><code>{code}</code></pre>
 
         <div class="flex gap-sm">
-          <button type="button" class="btn btn-primary" onClick={copyCode}>
+          <button type="button" class="btn btn-primary" onClick={copyCode} aria-live="polite">
             {copied ? 'Copied!' : 'Copy to clipboard'}
           </button>
           <button type="button" class="btn btn-secondary" onClick={downloadCode}>
