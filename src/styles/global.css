@@ -210,6 +210,41 @@ body {
   padding: 32px;
 }
 
+.step-number {
+  font-family: 'Inter', sans-serif;
+  font-size: 80px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -3.2px;
+  color: var(--ok-accent-light);
+}
+
+.cta-card {
+  width: 100%;
+}
+
+.footer-divider {
+  width: 100%;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.footer-inner .text-nav {
+  text-decoration: none;
+  color: #000;
+}
+
+.footer-inner .text-nav:hover {
+  color: var(--ok-accent);
+}
+
 /* Generator */
 .color-input-area {
   display: flex;
@@ -403,6 +438,11 @@ body {
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .scale-row {
