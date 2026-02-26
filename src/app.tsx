@@ -92,11 +92,7 @@ export function App() {
         />
       </div>
       <div id="export">
-        <ExportSection
-          paletteName="primary"
-          palette={palette}
-          scale={palette ? palette.primary.scale : []}
-        />
+        <ExportSection palette={palette} />
       </div>
       <HowItWorks />
       <Footer />

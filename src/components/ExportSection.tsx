@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'preact/hooks';
-import { EXPORT_FORMATS, type ExportFormat, formatExport } from '../lib/export';
+import { EXPORT_FORMATS, type ExportFormat, formatFullExport } from '../lib/export';
 import type { FullPalette } from '../lib/palette';
-import type { ScaleColor } from '../lib/scale';
 
-type Props = {
-  paletteName: string;
+type ExportSectionProps = {
   palette: FullPalette | null;
-  scale: ScaleColor[];
 };
 
 function labelFor(format: ExportFormat): string {
@@ -17,17 +14,29 @@ function labelFor(format: ExportFormat): string {
   return 'CSS';
 }
 
-export function ExportSection(props: Props) {
-  var state = useState<ExportFormat>('css');
-  var activeFormat = state[0];
-  var setActiveFormat = state[1];
+function filenameFor(format: ExportFormat): string {
+  if (format === 'tailwind') return 'okscale-tailwind.config.ts';
+  if (format === 'tokens') return 'okscale-tokens.json';
+  if (format === 'figma') return 'okscale-figma-variables.json';
+  if (format === 'scss') return 'okscale-palette.scss';
+  return 'okscale-palette.css';
+}
+
+export function ExportSection(props: ExportSectionProps) {
+  var formatState = useState<ExportFormat>('css');
+  var activeFormat = formatState[0];
+  var setActiveFormat = formatState[1];
+
   var copiedState = useState(false);
   var copied = copiedState[0];
   var setCopied = copiedState[1];
 
   var code = useMemo(function () {
-    return formatExport(activeFormat, props.paletteName, props.scale);
-  }, [activeFormat, props.paletteName, props.scale]);
+    if (!props.palette) {
+      return '// Generate a palette in the Generator section to export your full color system.';
+    }
+    return formatFullExport(activeFormat, props.palette);
+  }, [activeFormat, props.palette]);
 
   async function copyCode() {
     try {
@@ -41,29 +50,52 @@ export function ExportSection(props: Props) {
     }
   }
 
+  function downloadCode() {
+    var blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    var href = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = href;
+    link.download = filenameFor(activeFormat);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
+  }
+
   return (
     <section id="export" class="section">
-      <h2>Export</h2>
-      <div class="export-actions">
-        {EXPORT_FORMATS.map(function (format) {
-          return (
-            <button
-              type="button"
-              key={format}
-              class={format === activeFormat ? 'active' : ''}
-              onClick={function () {
-                setActiveFormat(format);
-              }}
-            >
-              {labelFor(format)}
-            </button>
-          );
-        })}
-        <button type="button" class="copy" onClick={copyCode}>
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+      <div class="section-inner flex flex-col gap-md">
+        <h2 class="text-section">Export</h2>
+        <p class="text-body text-muted">Export your complete color system to any format.</p>
+
+        <div class="shade-mode-row">
+          {EXPORT_FORMATS.map(function (format) {
+            return (
+              <button
+                type="button"
+                key={format}
+                class={'btn ' + (format === activeFormat ? 'btn-primary' : 'btn-secondary')}
+                onClick={function () {
+                  setActiveFormat(format);
+                }}
+              >
+                {labelFor(format)}
+              </button>
+            );
+          })}
+        </div>
+
+        <pre class="code-block" style="max-height: 400px; overflow-y: auto;"><code>{code}</code></pre>
+
+        <div class="flex gap-sm">
+          <button type="button" class="btn btn-primary" onClick={copyCode}>
+            {copied ? 'Copied!' : 'Copy to clipboard'}
+          </button>
+          <button type="button" class="btn btn-secondary" onClick={downloadCode}>
+            Download
+          </button>
+        </div>
       </div>
-      <pre class="code-block"><code>{code}</code></pre>
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import type { FullPalette, PaletteRole } from './palette';
 import type { ScaleColor } from './scale';
 
 function slug(name: string): string {
@@ -11,6 +12,12 @@ function toScaleMap(scale: ScaleColor[]): Record<string, string> {
     map[String(item.step)] = item.hex;
   });
   return map;
+}
+
+var PALETTE_ROLES: PaletteRole[] = ['primary', 'secondary', 'accent', 'neutral'];
+
+function roleScale(palette: FullPalette, role: PaletteRole): ScaleColor[] {
+  return palette[role].scale;
 }
 
 export function paletteToCss(name: string, scale: ScaleColor[]): string {
@@ -84,6 +91,101 @@ export function paletteToFigmaVariables(name: string, scale: ScaleColor[]): stri
   return JSON.stringify(payload, null, 2);
 }
 
+export function fullPaletteToCss(palette: FullPalette): string {
+  var lines = [':root {'];
+  PALETTE_ROLES.forEach(function (role, roleIndex) {
+    var scale = roleScale(palette, role);
+    scale.forEach(function (item) {
+      lines.push('  --' + role + '-' + item.step + ': ' + item.hex + ';');
+    });
+    if (roleIndex < PALETTE_ROLES.length - 1) {
+      lines.push('');
+    }
+  });
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function fullPaletteToTailwind(palette: FullPalette): string {
+  var lines = ['export default {', '  theme: {', '    extend: {', '      colors: {'];
+
+  PALETTE_ROLES.forEach(function (role, roleIndex) {
+    lines.push('        ' + role + ': {');
+    roleScale(palette, role).forEach(function (item) {
+      lines.push("          '" + item.step + "': '" + item.hex + "',");
+    });
+    lines.push(roleIndex === PALETTE_ROLES.length - 1 ? '        }' : '        },');
+  });
+
+  lines.push('      }', '    }', '  }', '};');
+  return lines.join('\n');
+}
+
+export function fullPaletteToScss(palette: FullPalette): string {
+  var lines: string[] = [];
+  PALETTE_ROLES.forEach(function (role, roleIndex) {
+    lines.push('$' + role + ': (');
+    var scale = roleScale(palette, role);
+    scale.forEach(function (item, index) {
+      var comma = index === scale.length - 1 ? '' : ',';
+      lines.push('  ' + item.step + ': ' + item.hex + comma);
+    });
+    lines.push(');');
+    if (roleIndex < PALETTE_ROLES.length - 1) {
+      lines.push('');
+    }
+  });
+  return lines.join('\n');
+}
+
+export function fullPaletteToDesignTokens(palette: FullPalette): string {
+  var payload: Record<string, Record<string, { value: string; type: string }>> = {};
+  PALETTE_ROLES.forEach(function (role) {
+    var tokens: Record<string, { value: string; type: string }> = {};
+    roleScale(palette, role).forEach(function (item) {
+      tokens[item.step] = { value: item.hex, type: 'color' };
+    });
+    payload[role] = tokens;
+  });
+
+  return JSON.stringify(
+    Object.assign(
+      {
+        $schema: 'https://tr.designtokens.org/format/'
+      },
+      payload
+    ),
+    null,
+    2
+  );
+}
+
+export function fullPaletteToFigmaVariables(palette: FullPalette): string {
+  var variables = PALETTE_ROLES.map(function (role) {
+    return {
+      name: role,
+      type: 'COLOR',
+      valuesByMode: {
+        Light: toScaleMap(roleScale(palette, role))
+      }
+    };
+  });
+
+  return JSON.stringify(
+    {
+      collections: [
+        {
+          name: 'OKScale',
+          modes: ['Light'],
+          variables: variables
+        }
+      ]
+    },
+    null,
+    2
+  );
+}
+
 export var EXPORT_FORMATS = ['css', 'tailwind', 'tokens', 'figma', 'scss'] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
@@ -93,4 +195,12 @@ export function formatExport(format: ExportFormat, name: string, scale: ScaleCol
   if (format === 'figma') return paletteToFigmaVariables(name, scale);
   if (format === 'scss') return paletteToScss(name, scale);
   return paletteToCss(name, scale);
+}
+
+export function formatFullExport(format: ExportFormat, palette: FullPalette): string {
+  if (format === 'tailwind') return fullPaletteToTailwind(palette);
+  if (format === 'tokens') return fullPaletteToDesignTokens(palette);
+  if (format === 'figma') return fullPaletteToFigmaVariables(palette);
+  if (format === 'scss') return fullPaletteToScss(palette);
+  return fullPaletteToCss(palette);
 }
