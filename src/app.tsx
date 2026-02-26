@@ -1,22 +1,19 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { ExportSection } from './components/ExportSection';
 import { Footer } from './components/Footer';
-import { Generator, type PaletteItem } from './components/Generator';
+import { Generator } from './components/Generator';
 import { Hero } from './components/Hero';
 import { HowItWorks } from './components/HowItWorks';
 import { Nav } from './components/Nav';
 import { WhyOklch } from './components/WhyOklch';
-import { parseColorInput, rgbToHex, rgbToOklch } from './lib/color';
-import { generateScale } from './lib/scale';
+import { parseColorInput, rgbToOklch } from './lib/color';
+import { suggestGradients } from './lib/gradient';
+import { generateHarmony, type HarmonyType } from './lib/harmony';
+import { generateFullPalette } from './lib/palette';
+import type { ShadeMode } from './lib/shades';
+import type { ScaleColor } from './lib/scale';
 
-var DEFAULT_PALETTES: PaletteItem[] = [
-  { id: 'primary', name: 'primary', color: '#3b82f6' },
-  { id: 'secondary', name: 'secondary', color: '#10b981' },
-  { id: 'neutral', name: 'neutral', color: '#64748b' },
-  { id: 'accent', name: 'accent', color: '#f97316' }
-];
-
-function applyTokens(scale: ReturnType<typeof generateScale>) {
+function applyTokens(scale: ScaleColor[]) {
   var root = document.documentElement;
   scale.forEach(function (item) {
     root.style.setProperty('--ok-primary-' + item.step, item.hex);
@@ -25,67 +22,50 @@ function applyTokens(scale: ReturnType<typeof generateScale>) {
 }
 
 export function App() {
-  var paletteState = useState(DEFAULT_PALETTES);
-  var palettes = paletteState[0];
-  var setPalettes = paletteState[1];
-  var activeState = useState('primary');
-  var activePaletteId = activeState[0];
-  var setActivePaletteId = activeState[1];
+  var colorInputState = useState('#3b82f6');
+  var colorInput = colorInputState[0];
+  var setColorInput = colorInputState[1];
 
-  var activePalette =
-    palettes.find(function (palette) {
-      return palette.id === activePaletteId;
-    }) || palettes[0];
+  var shadeModeState = useState<ShadeMode>('natural');
+  var shadeMode = shadeModeState[0];
+  var setShadeMode = shadeModeState[1];
 
-  var parsed = parseColorInput(activePalette.color);
-  var previewHex = parsed ? rgbToHex(parsed) : '#3b82f6';
+  var harmonyTypeState = useState<HarmonyType>('complementary');
+  var harmonyType = harmonyTypeState[0];
+  var setHarmonyType = harmonyTypeState[1];
 
-  var scale = useMemo(function () {
-    var sourceRgb = parsed || parseColorInput('#3b82f6');
-    return generateScale(rgbToOklch(sourceRgb!));
-  }, [previewHex]);
+  var parsedRgb = useMemo(function () {
+    return parseColorInput(colorInput);
+  }, [colorInput]);
+
+  var primaryOklch = useMemo(function () {
+    return parsedRgb ? rgbToOklch(parsedRgb) : null;
+  }, [parsedRgb]);
+
+  var palette = useMemo(function () {
+    if (!primaryOklch) return null;
+    return generateFullPalette(primaryOklch, shadeMode);
+  }, [primaryOklch, shadeMode]);
+
+  var harmony = useMemo(function () {
+    if (!primaryOklch) return null;
+    return generateHarmony(primaryOklch, harmonyType);
+  }, [primaryOklch, harmonyType]);
+
+  var gradients = useMemo(function () {
+    if (!primaryOklch) return [];
+    return suggestGradients(primaryOklch);
+  }, [primaryOklch]);
 
   useEffect(
     function () {
-      applyTokens(scale);
+      if (!palette) return;
+      applyTokens(palette.primary.scale);
     },
-    [scale]
+    [palette]
   );
 
-  function renamePalette(id: string, name: string) {
-    setPalettes(
-      palettes.map(function (palette) {
-        if (palette.id !== id) return palette;
-        return Object.assign({}, palette, { name: name || 'palette' });
-      })
-    );
-  }
-
-  function updateColor(value: string) {
-    setPalettes(
-      palettes.map(function (palette) {
-        if (palette.id !== activePaletteId) return palette;
-        return Object.assign({}, palette, { color: value });
-      })
-    );
-  }
-
-  function addPalette() {
-    var id = 'palette-' + Date.now();
-    setPalettes(palettes.concat([{ id: id, name: 'palette', color: '#7c3aed' }]));
-    setActivePaletteId(id);
-  }
-
-  function removePalette(id: string) {
-    var next = palettes.filter(function (palette) {
-      return palette.id !== id;
-    });
-    if (!next.length) return;
-    setPalettes(next);
-    if (activePaletteId === id) setActivePaletteId(next[0].id);
-  }
-
-  var colorError = parsed
+  var colorError = parsedRgb
     ? ''
     : 'Color format not recognized. Try #3b82f6, rgb(59,130,246), hsl(217,91%,60%), or oklch(0.62 0.19 259).';
 
@@ -95,23 +75,28 @@ export function App() {
       <div id="hero">
         <Hero />
       </div>
-      <WhyOklch baseHex={previewHex} />
+      <WhyOklch baseHex={colorInput} />
       <div id="generator">
         <Generator
-          palettes={palettes}
-          activePaletteId={activePaletteId}
-          activeHex={activePalette.color}
+          colorInput={colorInput}
           colorError={colorError}
-          scale={scale}
-          onSelect={setActivePaletteId}
-          onRename={renamePalette}
-          onColorChange={updateColor}
-          onAdd={addPalette}
-          onRemove={removePalette}
+          primaryOklch={primaryOklch}
+          palette={palette}
+          harmony={harmony}
+          gradients={gradients}
+          shadeMode={shadeMode}
+          harmonyType={harmonyType}
+          onColorChange={setColorInput}
+          onShadeModeChange={setShadeMode}
+          onHarmonyTypeChange={setHarmonyType}
         />
       </div>
       <div id="export">
-        <ExportSection paletteName={activePalette.name || 'palette'} scale={scale} />
+        <ExportSection
+          paletteName="primary"
+          palette={palette}
+          scale={palette ? palette.primary.scale : []}
+        />
       </div>
       <HowItWorks />
       <Footer />

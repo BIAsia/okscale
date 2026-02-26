@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'preact/hooks';
 import { EXPORT_FORMATS, type ExportFormat, formatExport } from '../lib/export';
+import type { FullPalette } from '../lib/palette';
 import type { ScaleColor } from '../lib/scale';
 
 type Props = {
   paletteName: string;
+  palette: FullPalette | null;
   scale: ScaleColor[];
 };
 
@@ -49,7 +51,9 @@ export function ExportSection(props: Props) {
               type="button"
               key={format}
               class={format === activeFormat ? 'active' : ''}
-              onClick={function () { setActiveFormat(format); }}
+              onClick={function () {
+                setActiveFormat(format);
+              }}
             >
               {labelFor(format)}
             </button>
