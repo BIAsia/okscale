@@ -180,7 +180,7 @@ export function DocsPage(props: DocsPageProps) {
         <div class="section-inner">
           <article class="card-dark flex flex-col gap-md">
             <h2 class="text-sub">Need a full token pack?</h2>
-            <p class="text-body" style="color: rgba(255, 255, 255, 0.72);">
+            <p class="text-body" style="color: var(--ok-neutral-200);">
               Open workspace, tune your brand color, and export all formats from one panel.
             </p>
             <div class="flex gap-sm cta-actions" style="flex-wrap: wrap;">
@@ -196,7 +196,7 @@ export function DocsPage(props: DocsPageProps) {
               <button
                 type="button"
                 class="btn btn-secondary"
-                style="border-color: #fff; color: #fff;"
+                style="border-color: var(--ok-neutral-50); color: var(--ok-neutral-50);"
                 onClick={function () {
                   props.onNavigate('/');
                 }}

@@ -92,26 +92,38 @@ export function paletteToDesignTokens(name: string, scale: ScaleColor[], namingP
   );
 }
 
-export function paletteToFigmaVariables(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
-  var key = slug(name);
-  var valuesByMode = toScaleMap(scale, namingPreset);
-  var payload = {
-    collections: [
-      {
-        name: 'OKScale',
-        modes: ['Light'],
-        variables: [
-          {
-            name: key,
-            type: 'COLOR',
-            valuesByMode: {
-              Light: valuesByMode
-            }
-          }
-        ]
-      }
-    ]
+function hexToComponents(hex: string): [number, number, number] {
+  var clean = hex.replace(/^#/, '');
+  var val = parseInt(clean, 16);
+  return [
+    Math.round((((val >> 16) & 255) / 255) * 10000) / 10000,
+    Math.round((((val >> 8) & 255) / 255) * 10000) / 10000,
+    Math.round(((val & 255) / 255) * 10000) / 10000
+  ];
+}
+
+function figmaColorValue(hex: string): {
+  $type: string;
+  $value: { colorSpace: string; components: number[]; alpha: number; hex: string };
+} {
+  return {
+    $type: 'color',
+    $value: {
+      colorSpace: 'srgb',
+      components: hexToComponents(hex),
+      alpha: 1,
+      hex: hex.toUpperCase()
+    }
   };
+}
+
+export function paletteToFigmaVariables(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
+  var collection: Record<string, ReturnType<typeof figmaColorValue>> = {};
+  scale.forEach(function (item) {
+    collection[tokenName(item.step, namingPreset)] = figmaColorValue(item.hex);
+  });
+  var payload: Record<string, typeof collection> = {};
+  payload[slug(name)] = collection;
   return JSON.stringify(payload, null, 2);
 }
 
@@ -185,29 +197,17 @@ export function fullPaletteToDesignTokens(palette: FullPalette, namingPreset: Na
 }
 
 export function fullPaletteToFigmaVariables(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
-  var variables = PALETTE_ROLES.map(function (role) {
-    return {
-      name: role,
-      type: 'COLOR',
-      valuesByMode: {
-        Light: toScaleMap(roleScale(palette, role), namingPreset)
-      }
-    };
+  var payload: Record<string, Record<string, ReturnType<typeof figmaColorValue>>> = {};
+
+  PALETTE_ROLES.forEach(function (role) {
+    var collection: Record<string, ReturnType<typeof figmaColorValue>> = {};
+    roleScale(palette, role).forEach(function (item) {
+      collection[tokenName(item.step, namingPreset)] = figmaColorValue(item.hex);
+    });
+    payload[role] = collection;
   });
 
-  return JSON.stringify(
-    {
-      collections: [
-        {
-          name: 'OKScale',
-          modes: ['Light'],
-          variables: variables
-        }
-      ]
-    },
-    null,
-    2
-  );
+  return JSON.stringify(payload, null, 2);
 }
 
 export var EXPORT_FORMATS = ['css', 'tailwind', 'tokens', 'figma', 'scss'] as const;
