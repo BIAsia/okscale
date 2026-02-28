@@ -30,6 +30,13 @@ function formatOklch(value: Oklch | null): string {
   return 'L: ' + value.l.toFixed(3) + '   C: ' + value.c.toFixed(3) + '   H: ' + value.h.toFixed(1) + 'deg';
 }
 
+function scaleHex(entry: FullPalette[keyof FullPalette], step: number, fallback: string): string {
+  var item = entry.scale.find(function (token) {
+    return token.step === step;
+  });
+  return item ? item.hex : fallback;
+}
+
 export function Generator(props: GeneratorProps) {
   var previewHex = props.palette ? props.palette.primary.baseHex : '#3b82f6';
 
@@ -200,6 +207,61 @@ export function Generator(props: GeneratorProps) {
               );
             })}
           </div>
+        ) : null}
+
+        {props.palette ? (
+          <article class="card flex flex-col gap-md" id="ui-preview">
+            <h3 class="text-body-lg">Live UI Preview</h3>
+            <p class="text-body text-muted">A quick component mock powered by your generated tokens.</p>
+            <div
+              class="preview-surface"
+              style={{
+                backgroundColor: scaleHex(props.palette.neutral, 50, '#f8fafc'),
+                borderColor: scaleHex(props.palette.neutral, 200, '#e2e8f0'),
+                color: scaleHex(props.palette.neutral, 900, '#0f172a')
+              }}
+            >
+              <div class="preview-head">
+                <div>
+                  <p class="text-code text-small">Product Card</p>
+                  <p class="text-body">Tokenized preview block</p>
+                </div>
+                <span
+                  class="preview-badge text-code text-small"
+                  style={{
+                    backgroundColor: scaleHex(props.palette.accent, 100, '#e0f2fe'),
+                    color: scaleHex(props.palette.accent, 700, '#0c4a6e')
+                  }}
+                >
+                  Accent Tag
+                </span>
+              </div>
+              <p class="text-body text-muted">Use this as a sanity check before exporting tokens to your real app.</p>
+              <div class="preview-actions">
+                <button
+                  type="button"
+                  class="preview-button-primary"
+                  style={{
+                    backgroundColor: scaleHex(props.palette.primary, 600, '#2563eb'),
+                    color: scaleHex(props.palette.primary, 50, '#eff6ff')
+                  }}
+                >
+                  Primary action
+                </button>
+                <button
+                  type="button"
+                  class="preview-button-secondary"
+                  style={{
+                    backgroundColor: scaleHex(props.palette.neutral, 100, '#f1f5f9'),
+                    color: scaleHex(props.palette.neutral, 900, '#0f172a'),
+                    borderColor: scaleHex(props.palette.neutral, 300, '#cbd5e1')
+                  }}
+                >
+                  Secondary action
+                </button>
+              </div>
+            </div>
+          </article>
         ) : null}
 
         {props.palette ? (
