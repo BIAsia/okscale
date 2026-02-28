@@ -1168,64 +1168,45 @@ a:focus-visible {
 
 .landing-wrap {
   min-height: 100vh;
-  background: var(--ok-neutral-100);
+  background: var(--ok-neutral-50);
   display: flex;
   flex-direction: column;
+  border: 1.5px solid var(--ok-neutral-950);
 }
 
 /* Banner: 4-column color strip */
-/* ── Loading overlay ── */
+/* ── Loading overlay (motion.dev powered) ── */
 .landing-loading {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
 }
 
 .landing-loading-columns {
   display: flex;
   width: 100%;
-  flex: 1;
+  height: 100%;
 }
 
 .landing-loading-col {
   height: 100%;
-  flex: 0;
-  transition: flex 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-right: 1.5px solid var(--ok-neutral-950);
 }
 
-.landing-loading--stage0 .landing-loading-columns {
-  display: none;
+.landing-loading-col:last-child {
+  border-right: none;
 }
 
-.landing-loading--stage1 .landing-loading-col {
-  flex: 0;
-}
-
-.landing-loading--stage2 .landing-loading-col {
-  flex: 1;
-}
-
-.landing-loading--stage3 {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
-  height: 200px;
-  transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-  opacity: 0;
-  animation: loading-fadeout 0.5s 0.2s ease forwards;
-}
-
-.landing-loading--stage3 .landing-loading-col {
-  flex: 1;
-}
-
-@keyframes loading-fadeout {
-  to { opacity: 0; }
+.landing-loading-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 16px;
+  white-space: nowrap;
 }
 
 /* ── Landing main ── */
@@ -1235,18 +1216,13 @@ a:focus-visible {
 
 .landing-main--visible {
   opacity: 1;
-  animation: landing-main-in 0.5s ease both;
-}
-
-@keyframes landing-main-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  transition: opacity 0.5s ease;
 }
 
 .landing-content-area {
   opacity: 0;
   transform: translateY(16px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition: opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s;
 }
 
 .landing-content-area--visible {
@@ -1258,7 +1234,7 @@ a:focus-visible {
 .landing-banner {
   display: flex;
   width: 100%;
-  height: 200px;
+  height: 202px;
   overflow: hidden;
 }
 
@@ -1269,7 +1245,7 @@ a:focus-visible {
   overflow: hidden;
   cursor: pointer;
   display: flex;
-  transition: flex 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: flex 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   border-right: 1.5px solid var(--ok-neutral-950);
 }
 
@@ -1279,7 +1255,7 @@ a:focus-visible {
 
 .landing-banner-role--hidden {
   flex: 0;
-  border-right: none;
+  border-right-width: 0;
 }
 
 .landing-banner-role-label {
@@ -1313,8 +1289,8 @@ a:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: flex 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  border-right: 1px solid var(--ok-neutral-950);
+  transition: flex 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  border-right: 1.5px solid var(--ok-neutral-950);
 }
 
 .landing-banner-shade:last-child {
@@ -1342,8 +1318,8 @@ a:focus-visible {
 .landing-content {
   display: flex;
   justify-content: space-between;
-  gap: 48px;
-  padding: 48px 32px 0;
+  gap: 0;
+  padding: 48px 20px 48px 20px;
   max-width: 1280px;
   margin: 0 auto;
   width: 100%;
@@ -1351,10 +1327,10 @@ a:focus-visible {
 
 .landing-content-left {
   flex: 1;
-  max-width: 600px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 37px;
+  padding-left: 8px;
 }
 
 .landing-tagline {
@@ -1363,7 +1339,7 @@ a:focus-visible {
   font-size: 32px;
   line-height: 1.35;
   letter-spacing: -0.5px;
-  color: #000;
+  color: var(--ok-neutral-950);
 }
 
 .landing-actions {
@@ -1423,7 +1399,7 @@ a:focus-visible {
 /* Right side link groups */
 .landing-content-right {
   display: flex;
-  gap: 48px;
+  gap: 0;
   flex-shrink: 0;
 }
 
@@ -1431,28 +1407,28 @@ a:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 0 48px;
 }
 
 .landing-link-title {
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 20px;
-  letter-spacing: -0.2px;
-  color: #000;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ok-neutral-950);
   margin-bottom: 4px;
 }
 
 .landing-link {
-  font-family: 'Inter', sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
   font-size: 16px;
-  color: #a7a7a7;
+  color: var(--ok-neutral-500);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .landing-link:hover {
-  color: #000;
+  color: var(--ok-highlight-text);
 }
 
 /* Giant hero type */
@@ -1494,50 +1470,65 @@ a:focus-visible {
 /* Footer bar */
 .landing-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  max-width: 1280px;
-  margin: 0 auto;
   width: 100%;
 }
 
-.landing-footer-brand {
+.landing-footer-cell {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  padding: 17px 26px;
+  border-top: 1.5px solid var(--ok-neutral-950);
+  border-right: 1.5px solid var(--ok-neutral-950);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+}
+
+.landing-footer-cell:last-child {
+  border-right: none;
+}
+
+.landing-footer-cell a {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--ok-neutral-950);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.landing-footer-cell a:hover {
+  color: var(--ok-highlight-text);
 }
 
 .landing-footer-name {
   font-family: 'Inter', sans-serif;
   font-weight: 800;
   font-size: 14px;
-  color: #000;
+  color: var(--ok-neutral-950);
 }
 
 .landing-footer-label {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 14px;
-  color: #a7a7a7;
+  color: var(--ok-neutral-500);
 }
 
-.landing-footer-nav {
+.landing-footer-social {
   display: flex;
-  gap: 60px;
+  align-items: center;
+  gap: 18px;
 }
 
-.landing-footer-nav a {
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  color: #000;
-  text-decoration: none;
-  transition: color 0.2s ease;
+.landing-footer-social a {
+  display: flex;
+  color: var(--ok-neutral-950);
 }
 
-.landing-footer-nav a:hover {
-  color: #a7a7a7;
+.landing-footer-social a:hover {
+  color: var(--ok-highlight-text);
 }
 
 /* Landing page fade-in for sections */

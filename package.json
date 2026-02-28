@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "motion": "^12.34.3",
     "preact": "^10.26.4"
   },
   "devDependencies": {
