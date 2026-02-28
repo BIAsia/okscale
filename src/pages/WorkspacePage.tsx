@@ -3,6 +3,7 @@ import { ExportPanel } from '../components/ExportPanel';
 import { Footer } from '../components/Footer';
 import { Generator, type GeneratorProps } from '../components/Generator';
 import { Nav } from '../components/Nav';
+import { buildUsageMatrix } from '../lib/contrast';
 import { type ExportFormat, formatFullExport } from '../lib/export';
 import type { FullPalette } from '../lib/palette';
 
@@ -23,6 +24,29 @@ export function WorkspacePage(props: WorkspacePageProps) {
     return formatFullExport('css' as ExportFormat, props.palette);
   }, [props.palette]);
 
+  var trustStats = useMemo(function () {
+    if (!props.palette) {
+      return [
+        'Perceptual Oklch scale generation',
+        'Gamut-safe mapping enabled',
+        'Contrast usage checks pending'
+      ];
+    }
+
+    var totalTokens = props.palette.primary.scale.length * 4;
+    var matrixRows = buildUsageMatrix(props.palette.primary.scale);
+    var passCount = matrixRows.filter(function (row) {
+      return row.pass;
+    }).length;
+
+    return [
+      'Perceptual Oklch scale generation',
+      'Gamut-safe mapping enabled',
+      passCount + '/' + matrixRows.length + ' recommended contrast pairs pass',
+      totalTokens + ' palette tokens ready for export'
+    ];
+  }, [props.palette]);
+
   async function copyQuickCss() {
     try {
       await navigator.clipboard.writeText(quickCss);
@@ -40,14 +64,29 @@ export function WorkspacePage(props: WorkspacePageProps) {
       <Nav mode="workspace" onNavigate={props.onNavigate} />
 
       <section class="section workspace-topbar">
-        <div class="section-inner workspace-topbar-inner">
-          <div class="workspace-topbar-copy">
-            <h1 class="text-section">Generator Workspace</h1>
-            <p class="text-body text-muted">Tune your palette on the left, export from the sticky panel on the right.</p>
+        <div class="section-inner flex flex-col gap-md">
+          <div class="workspace-topbar-inner">
+            <div class="workspace-topbar-copy">
+              <h1 class="text-section">Generator Workspace</h1>
+              <p class="text-body text-muted">Tune your palette on the left, export from the sticky panel on the right.</p>
+            </div>
+            <button type="button" class="btn btn-accent" onClick={copyQuickCss}>
+              {copied ? 'CSS copied' : 'Copy CSS now'}
+            </button>
           </div>
-          <button type="button" class="btn btn-accent" onClick={copyQuickCss}>
-            {copied ? 'CSS copied' : 'Copy CSS now'}
-          </button>
+
+          <article class="card trust-strip">
+            <p class="text-code text-small text-muted">Trust & quality status</p>
+            <div class="trust-strip-items">
+              {trustStats.map(function (item) {
+                return (
+                  <span key={item} class="trust-pill text-code text-small">
+                    {item}
+                  </span>
+                );
+              })}
+            </div>
+          </article>
         </div>
       </section>
 

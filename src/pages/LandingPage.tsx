@@ -2,6 +2,7 @@ import { Footer } from '../components/Footer';
 import { Hero } from '../components/Hero';
 import { HowItWorks } from '../components/HowItWorks';
 import { Nav } from '../components/Nav';
+import { OklchQuickCompareCard } from '../components/OklchQuickCompareCard';
 import { WhyOklch } from '../components/WhyOklch';
 
 type LandingPageProps = {
@@ -20,6 +21,7 @@ export function LandingPage(props: LandingPageProps) {
           }}
         />
       </div>
+      <OklchQuickCompareCard onNavigate={props.onNavigate} />
       <WhyOklch baseHex={props.baseHex} />
       <HowItWorks
         onOpenApp={function () {

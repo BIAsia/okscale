@@ -40,6 +40,33 @@ export function WhyOklch(props: WhyOklchProps) {
   var hslScale = generateHslScale(demoBase);
   var oklchScale = generateScale(demoBase);
 
+  function gapVariance(values: number[]): number {
+    if (values.length < 2) return 0;
+    var gaps: number[] = [];
+    for (var i = 1; i < values.length; i++) {
+      gaps.push(Math.abs(values[i] - values[i - 1]));
+    }
+    var mean = gaps.reduce(function (acc, value) {
+      return acc + value;
+    }, 0) / gaps.length;
+    var variance = gaps.reduce(function (acc, value) {
+      var diff = value - mean;
+      return acc + diff * diff;
+    }, 0) / gaps.length;
+    return variance;
+  }
+
+  var hslVariance = gapVariance(
+    hslScale.map(function (item) {
+      return item.lch.l;
+    })
+  );
+  var oklchVariance = gapVariance(
+    oklchScale.map(function (item) {
+      return item.lch.l;
+    })
+  );
+
   var lightnessStrip = Array.from({ length: 10 }, function (_, i) {
     var t = i / 9;
     return oklchHex({ l: t, c: 0, h: base.h });
@@ -98,6 +125,32 @@ export function WhyOklch(props: WhyOklchProps) {
     <section id="why-oklch" class="section">
       <div class="section-inner flex flex-col gap-lg">
         <h2 class="text-section">Why Oklch?</h2>
+
+        <article class="card why-compact-card flex flex-col gap-md">
+          <div class="grid-2 gap-md why-compact-grid">
+            <div class="flex flex-col gap-sm">
+              <p class="text-code text-small text-muted">HSL visual rhythm</p>
+              {renderSwatches(
+                hslScale.map(function (item) {
+                  return item.hex;
+                })
+              )}
+            </div>
+            <div class="flex flex-col gap-sm">
+              <p class="text-code text-small text-muted">Oklch visual rhythm</p>
+              {renderSwatches(
+                oklchScale.map(function (item) {
+                  return item.hex;
+                })
+              )}
+            </div>
+          </div>
+          <div class="why-metric-row">
+            <span class="trust-pill text-code text-small">HSL gap variance: {hslVariance.toFixed(5)}</span>
+            <span class="trust-pill text-code text-small">Oklch gap variance: {oklchVariance.toFixed(5)}</span>
+            <span class="trust-pill text-code text-small">Lower variance = smoother visual steps</span>
+          </div>
+        </article>
 
         <div class="grid-2 gap-md">
           <article class="card flex flex-col gap-sm">

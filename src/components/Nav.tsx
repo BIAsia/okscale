@@ -1,4 +1,4 @@
-type NavMode = 'landing' | 'workspace';
+type NavMode = 'landing' | 'workspace' | 'docs';
 
 type NavProps = {
   mode: NavMode;
@@ -29,10 +29,51 @@ export function Nav(props: NavProps) {
           <a href="#palette-preview">Preview</a>
           <a href="#contrast-matrix">Contrast</a>
           <a
-            href="https://github.com/BIAsia/okscale"
-            target="_blank"
-            rel="noreferrer"
+            href="/docs"
+            onClick={function (event) {
+              navigate(event, '/docs', props.onNavigate);
+            }}
           >
+            Docs
+          </a>
+          <a href="https://github.com/BIAsia/okscale" target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+        </nav>
+      </header>
+    );
+  }
+
+  if (props.mode === 'docs') {
+    return (
+      <header class="nav">
+        <a
+          class="nav-logo"
+          href="/"
+          onClick={function (event) {
+            navigate(event, '/', props.onNavigate);
+          }}
+        >
+          OKSCALE
+        </a>
+        <nav class="nav-links" aria-label="Docs">
+          <a
+            href="/app"
+            onClick={function (event) {
+              navigate(event, '/app', props.onNavigate);
+            }}
+          >
+            Workspace
+          </a>
+          <a
+            href="/"
+            onClick={function (event) {
+              navigate(event, '/', props.onNavigate);
+            }}
+          >
+            Landing
+          </a>
+          <a href="https://github.com/BIAsia/okscale" target="_blank" rel="noreferrer">
             GitHub
           </a>
         </nav>
@@ -48,6 +89,14 @@ export function Nav(props: NavProps) {
       <nav class="nav-links" aria-label="Primary">
         <a href="#why-oklch">Why Oklch</a>
         <a href="#how">How it works</a>
+        <a
+          href="/docs"
+          onClick={function (event) {
+            navigate(event, '/docs', props.onNavigate);
+          }}
+        >
+          Docs
+        </a>
         <a
           href="/app"
           onClick={function (event) {

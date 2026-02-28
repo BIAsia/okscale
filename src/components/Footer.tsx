@@ -1,4 +1,4 @@
-type FooterMode = 'landing' | 'workspace';
+type FooterMode = 'landing' | 'workspace' | 'docs';
 
 type FooterProps = {
   mode: FooterMode;
@@ -24,7 +24,7 @@ export function Footer(props: FooterProps) {
             class="nav-logo"
             href={props.mode === 'landing' ? '#hero' : '/'}
             onClick={
-              props.mode === 'workspace'
+              props.mode !== 'landing'
                 ? function (event) {
                     routeClick(event, '/', props.onNavigate);
                   }
@@ -45,6 +45,15 @@ export function Footer(props: FooterProps) {
                 </a>
                 <a
                   class="text-nav"
+                  href="/docs"
+                  onClick={function (event) {
+                    routeClick(event, '/docs', props.onNavigate);
+                  }}
+                >
+                  Docs
+                </a>
+                <a
+                  class="text-nav"
                   href="/app"
                   onClick={function (event) {
                     routeClick(event, '/app', props.onNavigate);
@@ -53,7 +62,7 @@ export function Footer(props: FooterProps) {
                   Open App
                 </a>
               </>
-            ) : (
+            ) : props.mode === 'workspace' ? (
               <>
                 <a
                   class="text-nav"
@@ -69,6 +78,36 @@ export function Footer(props: FooterProps) {
                 </a>
                 <a class="text-nav" href="#contrast-matrix">
                   Contrast
+                </a>
+                <a
+                  class="text-nav"
+                  href="/docs"
+                  onClick={function (event) {
+                    routeClick(event, '/docs', props.onNavigate);
+                  }}
+                >
+                  Docs
+                </a>
+              </>
+            ) : (
+              <>
+                <a
+                  class="text-nav"
+                  href="/"
+                  onClick={function (event) {
+                    routeClick(event, '/', props.onNavigate);
+                  }}
+                >
+                  Home
+                </a>
+                <a
+                  class="text-nav"
+                  href="/app"
+                  onClick={function (event) {
+                    routeClick(event, '/app', props.onNavigate);
+                  }}
+                >
+                  Workspace
                 </a>
               </>
             )}
