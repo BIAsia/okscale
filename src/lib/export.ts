@@ -92,23 +92,39 @@ export function paletteToDesignTokens(name: string, scale: ScaleColor[], namingP
   );
 }
 
+function hexToFigmaColor(hex: string): { r: number; g: number; b: number; a: number } {
+  var clean = hex.replace(/^#/, '');
+  var val = parseInt(clean, 16);
+  return {
+    r: Math.round((((val >> 16) & 255) / 255) * 1000) / 1000,
+    g: Math.round((((val >> 8) & 255) / 255) * 1000) / 1000,
+    b: Math.round(((val & 255) / 255) * 1000) / 1000,
+    a: 1
+  };
+}
+
 export function paletteToFigmaVariables(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
   var key = slug(name);
-  var valuesByMode = toScaleMap(scale, namingPreset);
+  var variables: Array<{
+    name: string;
+    type: string;
+    valuesByMode: Record<string, { r: number; g: number; b: number; a: number }>;
+  }> = [];
+  scale.forEach(function (item) {
+    variables.push({
+      name: key + '/' + tokenName(item.step, namingPreset),
+      type: 'COLOR',
+      valuesByMode: {
+        Light: hexToFigmaColor(item.hex)
+      }
+    });
+  });
   var payload = {
     collections: [
       {
         name: 'OKScale',
         modes: ['Light'],
-        variables: [
-          {
-            name: key,
-            type: 'COLOR',
-            valuesByMode: {
-              Light: valuesByMode
-            }
-          }
-        ]
+        variables: variables
       }
     ]
   };
@@ -185,14 +201,22 @@ export function fullPaletteToDesignTokens(palette: FullPalette, namingPreset: Na
 }
 
 export function fullPaletteToFigmaVariables(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
-  var variables = PALETTE_ROLES.map(function (role) {
-    return {
-      name: role,
-      type: 'COLOR',
-      valuesByMode: {
-        Light: toScaleMap(roleScale(palette, role), namingPreset)
-      }
-    };
+  var variables: Array<{
+    name: string;
+    type: string;
+    valuesByMode: Record<string, { r: number; g: number; b: number; a: number }>;
+  }> = [];
+
+  PALETTE_ROLES.forEach(function (role) {
+    roleScale(palette, role).forEach(function (item) {
+      variables.push({
+        name: role + '/' + tokenName(item.step, namingPreset),
+        type: 'COLOR',
+        valuesByMode: {
+          Light: hexToFigmaColor(item.hex)
+        }
+      });
+    });
   });
 
   return JSON.stringify(
