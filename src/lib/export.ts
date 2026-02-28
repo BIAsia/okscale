@@ -92,42 +92,38 @@ export function paletteToDesignTokens(name: string, scale: ScaleColor[], namingP
   );
 }
 
-function hexToFigmaColor(hex: string): { r: number; g: number; b: number; a: number } {
+function hexToComponents(hex: string): [number, number, number] {
   var clean = hex.replace(/^#/, '');
   var val = parseInt(clean, 16);
+  return [
+    Math.round((((val >> 16) & 255) / 255) * 10000) / 10000,
+    Math.round((((val >> 8) & 255) / 255) * 10000) / 10000,
+    Math.round(((val & 255) / 255) * 10000) / 10000
+  ];
+}
+
+function figmaColorValue(hex: string): {
+  $type: string;
+  $value: { colorSpace: string; components: number[]; alpha: number; hex: string };
+} {
   return {
-    r: Math.round((((val >> 16) & 255) / 255) * 1000) / 1000,
-    g: Math.round((((val >> 8) & 255) / 255) * 1000) / 1000,
-    b: Math.round(((val & 255) / 255) * 1000) / 1000,
-    a: 1
+    $type: 'color',
+    $value: {
+      colorSpace: 'srgb',
+      components: hexToComponents(hex),
+      alpha: 1,
+      hex: hex.toUpperCase()
+    }
   };
 }
 
 export function paletteToFigmaVariables(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
-  var key = slug(name);
-  var variables: Array<{
-    name: string;
-    type: string;
-    valuesByMode: Record<string, { r: number; g: number; b: number; a: number }>;
-  }> = [];
+  var collection: Record<string, ReturnType<typeof figmaColorValue>> = {};
   scale.forEach(function (item) {
-    variables.push({
-      name: key + '/' + tokenName(item.step, namingPreset),
-      type: 'COLOR',
-      valuesByMode: {
-        Light: hexToFigmaColor(item.hex)
-      }
-    });
+    collection[tokenName(item.step, namingPreset)] = figmaColorValue(item.hex);
   });
-  var payload = {
-    collections: [
-      {
-        name: 'OKScale',
-        modes: ['Light'],
-        variables: variables
-      }
-    ]
-  };
+  var payload: Record<string, typeof collection> = {};
+  payload[slug(name)] = collection;
   return JSON.stringify(payload, null, 2);
 }
 
@@ -201,37 +197,17 @@ export function fullPaletteToDesignTokens(palette: FullPalette, namingPreset: Na
 }
 
 export function fullPaletteToFigmaVariables(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
-  var variables: Array<{
-    name: string;
-    type: string;
-    valuesByMode: Record<string, { r: number; g: number; b: number; a: number }>;
-  }> = [];
+  var payload: Record<string, Record<string, ReturnType<typeof figmaColorValue>>> = {};
 
   PALETTE_ROLES.forEach(function (role) {
+    var collection: Record<string, ReturnType<typeof figmaColorValue>> = {};
     roleScale(palette, role).forEach(function (item) {
-      variables.push({
-        name: role + '/' + tokenName(item.step, namingPreset),
-        type: 'COLOR',
-        valuesByMode: {
-          Light: hexToFigmaColor(item.hex)
-        }
-      });
+      collection[tokenName(item.step, namingPreset)] = figmaColorValue(item.hex);
     });
+    payload[role] = collection;
   });
 
-  return JSON.stringify(
-    {
-      collections: [
-        {
-          name: 'OKScale',
-          modes: ['Light'],
-          variables: variables
-        }
-      ]
-    },
-    null,
-    2
-  );
+  return JSON.stringify(payload, null, 2);
 }
 
 export var EXPORT_FORMATS = ['css', 'tailwind', 'tokens', 'figma', 'scss'] as const;
