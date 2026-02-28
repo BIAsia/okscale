@@ -1174,66 +1174,168 @@ a:focus-visible {
 }
 
 /* Banner: 4-column color strip */
-.landing-banner {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  width: 100%;
-  height: 200px;
+/* ── Loading overlay ── */
+.landing-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
 }
 
-.landing-banner-col {
+.landing-loading-columns {
+  display: flex;
+  width: 100%;
+  flex: 1;
+}
+
+.landing-loading-col {
+  height: 100%;
+  flex: 0;
+  transition: flex 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.landing-loading--stage0 .landing-loading-columns {
+  display: none;
+}
+
+.landing-loading--stage1 .landing-loading-col {
+  flex: 0;
+}
+
+.landing-loading--stage2 .landing-loading-col {
+  flex: 1;
+}
+
+.landing-loading--stage3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  height: 200px;
+  transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  opacity: 0;
+  animation: loading-fadeout 0.5s 0.2s ease forwards;
+}
+
+.landing-loading--stage3 .landing-loading-col {
+  flex: 1;
+}
+
+@keyframes loading-fadeout {
+  to { opacity: 0; }
+}
+
+/* ── Landing main ── */
+.landing-main {
+  opacity: 0;
+}
+
+.landing-main--visible {
+  opacity: 1;
+  animation: landing-main-in 0.5s ease both;
+}
+
+@keyframes landing-main-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.landing-content-area {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.landing-content-area--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Banner (flex-based hover) ── */
+.landing-banner {
+  display: flex;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.landing-banner-role {
   position: relative;
+  flex: 1;
   height: 100%;
   overflow: hidden;
   cursor: pointer;
+  display: flex;
+  transition: flex 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1.5px solid var(--ok-neutral-950);
 }
 
-/* Solid color layer — visible by default, fades out on hover */
-.landing-banner-solid {
+.landing-banner-role:last-child {
+  border-right: none;
+}
+
+.landing-banner-role--hidden {
+  flex: 0;
+  border-right: none;
+}
+
+.landing-banner-role-label {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 1;
-  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2;
-}
-
-.landing-banner-col--expanded .landing-banner-solid {
-  opacity: 0;
-}
-
-.landing-banner-hex {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
   font-size: 16px;
-  color: rgba(0, 0, 0, 0.5);
-  mix-blend-mode: multiply;
+  z-index: 2;
+  pointer-events: none;
   transition: opacity 0.3s ease;
 }
 
-.landing-banner-col--expanded .landing-banner-hex {
+.landing-banner-role--active .landing-banner-role-label {
   opacity: 0;
 }
 
-/* Shades layer — hidden by default, fades in on hover */
 .landing-banner-shades {
-  position: absolute;
-  inset: 0;
   display: flex;
-  opacity: 0;
-  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1;
-}
-
-.landing-banner-col--expanded .landing-banner-shades {
-  opacity: 1;
+  width: 100%;
+  height: 100%;
 }
 
 .landing-banner-shade {
-  flex: 1;
+  flex: 0;
   height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: flex 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1px solid var(--ok-neutral-950);
+}
+
+.landing-banner-shade:last-child {
+  border-right: none;
+}
+
+.landing-banner-role--active .landing-banner-shade {
+  flex: 1;
+}
+
+.landing-banner-shade-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 16px;
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.3s ease 0.15s;
+}
+
+.landing-banner-role--active .landing-banner-shade-label {
+  opacity: 1;
 }
 
 /* Content area */
@@ -1457,12 +1559,18 @@ a:focus-visible {
 /* Landing responsive */
 @media (max-width: 768px) {
   .landing-banner {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     height: auto;
   }
 
-  .landing-banner-col {
+  .landing-banner-role {
     height: 120px;
+    border-right: none;
+    border-bottom: 1.5px solid var(--ok-neutral-950);
+  }
+
+  .landing-banner-role:last-child {
+    border-bottom: none;
   }
 
   .landing-content {
