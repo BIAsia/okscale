@@ -40,11 +40,48 @@ body {
   --ok-primary-800: #202020;
   --ok-primary-900: #141414;
   --ok-primary-950: #0a0a0a;
-  --ok-accent: var(--ok-primary-500);
-  --ok-accent-fg: #000;
-  --ok-accent-text: var(--ok-primary-700);
-  --ok-accent-light: var(--ok-primary-200);
-  --ok-accent-dark: var(--ok-primary-800);
+
+  --ok-secondary-50: #fafafa;
+  --ok-secondary-100: #f0f0f0;
+  --ok-secondary-200: #e0e0e0;
+  --ok-secondary-300: #c0c0c0;
+  --ok-secondary-400: #909090;
+  --ok-secondary-500: #606060;
+  --ok-secondary-600: #404040;
+  --ok-secondary-700: #303030;
+  --ok-secondary-800: #202020;
+  --ok-secondary-900: #141414;
+  --ok-secondary-950: #0a0a0a;
+
+  --ok-accent-50: #fafafa;
+  --ok-accent-100: #f0f0f0;
+  --ok-accent-200: #e0e0e0;
+  --ok-accent-300: #c0c0c0;
+  --ok-accent-400: #909090;
+  --ok-accent-500: #606060;
+  --ok-accent-600: #404040;
+  --ok-accent-700: #303030;
+  --ok-accent-800: #202020;
+  --ok-accent-900: #141414;
+  --ok-accent-950: #0a0a0a;
+
+  --ok-neutral-50: #fafafa;
+  --ok-neutral-100: #f0f0f0;
+  --ok-neutral-200: #e0e0e0;
+  --ok-neutral-300: #c0c0c0;
+  --ok-neutral-400: #909090;
+  --ok-neutral-500: #606060;
+  --ok-neutral-600: #404040;
+  --ok-neutral-700: #303030;
+  --ok-neutral-800: #202020;
+  --ok-neutral-900: #141414;
+  --ok-neutral-950: #0a0a0a;
+
+  /* Semantic tokens — computed by JS for contrast safety */
+  --ok-highlight: var(--ok-primary-500);
+  --ok-highlight-fg: #000;
+  --ok-highlight-text: var(--ok-primary-700);
+  --ok-secondary-text: var(--ok-secondary-700);
 
   /* Layout */
   --max-width: 1248px;

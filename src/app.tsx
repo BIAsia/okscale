@@ -6,7 +6,7 @@ import { parseColorInput, rgbToHex, rgbToOklch } from './lib/color';
 import { contrastRatio } from './lib/contrast';
 import { suggestGradients } from './lib/gradient';
 import { generateHarmony, type HarmonyType } from './lib/harmony';
-import { generateFullPalette } from './lib/palette';
+import { generateFullPalette, type FullPalette } from './lib/palette';
 import { decodeWorkspaceState, encodeWorkspaceState, type WorkspaceShareState } from './lib/share';
 import type { ShadeMode } from './lib/shades';
 import { nearestScaleStepForLightness, type AnchorBehavior, type ScaleColor } from './lib/scale';
@@ -14,45 +14,73 @@ import { nearestScaleStepForLightness, type AnchorBehavior, type ScaleColor } fr
 var WORKSPACE_STATE_STORAGE_KEY = 'okscale.workspace.v1';
 var RECENT_COLORS_STORAGE_KEY = 'okscale.recent-colors.v1';
 
-function applyTokens(scale: ScaleColor[], accentHex?: string) {
-  if (!scale.length) return;
+function applyAllTokens(palette: FullPalette, accentHex?: string) {
   var root = document.documentElement;
-  scale.forEach(function (item) {
-    root.style.setProperty('--ok-primary-' + item.step, item.hex);
-  });
-  var fallback = scale[Math.min(5, scale.length - 1)];
-  var accent = accentHex || (fallback ? fallback.hex : '#000');
-  root.style.setProperty('--ok-accent', accent);
+  var roles = ['primary', 'secondary', 'accent', 'neutral'] as const;
 
-  // Pick foreground for accent: find the scale step with highest contrast
+  // Write all 4 palette scales as CSS variables
+  for (var r = 0; r < roles.length; r++) {
+    var role = roles[r];
+    var entry = palette[role];
+    if (!entry || !entry.scale) continue;
+    for (var s = 0; s < entry.scale.length; s++) {
+      var item = entry.scale[s];
+      root.style.setProperty('--ok-' + role + '-' + item.step, item.hex);
+    }
+  }
+
+  // Set accent highlight (primary highlight color)
+  var primaryScale = palette.primary.scale;
+  var fallback = primaryScale[Math.min(5, primaryScale.length - 1)];
+  var highlight = accentHex || (fallback ? fallback.hex : '#000');
+  root.style.setProperty('--ok-highlight', highlight);
+
+  // --ok-highlight-fg: best contrast foreground for text ON highlight background
   var bestFg = '#000';
   var bestRatio = 0;
-  for (var i = 0; i < scale.length; i++) {
-    var ratio = contrastRatio(scale[i].hex, accent);
+  for (var i = 0; i < primaryScale.length; i++) {
+    var ratio = contrastRatio(primaryScale[i].hex, highlight);
     if (ratio > bestRatio) {
       bestRatio = ratio;
-      bestFg = scale[i].hex;
+      bestFg = primaryScale[i].hex;
     }
   }
-  root.style.setProperty('--ok-accent-fg', bestFg);
+  root.style.setProperty('--ok-highlight-fg', bestFg);
 
-  // Pick readable accent for text on light backgrounds (#f5f5f5 / #fff)
-  // Find the scale step with best contrast against light bg, minimum 4.5:1
-  var bestOnLight = accent;
-  var bestOnLightRatio = contrastRatio(accent, '#f5f5f5');
-  for (var j = 0; j < scale.length; j++) {
-    var r = contrastRatio(scale[j].hex, '#f5f5f5');
-    if (r > bestOnLightRatio) {
-      bestOnLightRatio = r;
-      bestOnLight = scale[j].hex;
+  // --ok-highlight-text: readable highlight for text on neutral backgrounds
+  // Use neutral-50 as reference background
+  var neutralScale = palette.neutral.scale;
+  var neutralBg = neutralScale.length > 0 ? neutralScale[0].hex : '#f5f5f5';
+  var bestOnNeutral = highlight;
+  var bestOnNeutralRatio = contrastRatio(highlight, neutralBg);
+  // If highlight itself has enough contrast (>= 4.5:1), prefer it
+  if (bestOnNeutralRatio < 4.5) {
+    // Find the primary step with best contrast against neutral bg
+    for (var j = 0; j < primaryScale.length; j++) {
+      var cr = contrastRatio(primaryScale[j].hex, neutralBg);
+      if (cr > bestOnNeutralRatio) {
+        bestOnNeutralRatio = cr;
+        bestOnNeutral = primaryScale[j].hex;
+      }
     }
   }
-  // If accent itself has enough contrast (>= 4.5:1), prefer it
-  var accentOnLightRatio = contrastRatio(accent, '#f5f5f5');
-  if (accentOnLightRatio >= 4.5) {
-    bestOnLight = accent;
+  root.style.setProperty('--ok-highlight-text', bestOnNeutral);
+
+  // --ok-secondary-text: readable secondary color for chips/checkbox on neutral bg
+  var secondaryScale = palette.secondary.scale;
+  var secBase = palette.secondary.baseHex;
+  var bestSecText = secBase;
+  var bestSecRatio = contrastRatio(secBase, neutralBg);
+  if (bestSecRatio < 4.5) {
+    for (var k = 0; k < secondaryScale.length; k++) {
+      var sr = contrastRatio(secondaryScale[k].hex, neutralBg);
+      if (sr > bestSecRatio) {
+        bestSecRatio = sr;
+        bestSecText = secondaryScale[k].hex;
+      }
+    }
   }
-  root.style.setProperty('--ok-accent-text', bestOnLight);
+  root.style.setProperty('--ok-secondary-text', bestSecText);
 }
 
 function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
@@ -209,8 +237,9 @@ export function App() {
           }
         }
       }
+      var paletteRef = palette;
       var frame = window.requestAnimationFrame(function () {
-        applyTokens(primaryScale, accentHex);
+        applyAllTokens(paletteRef, accentHex);
       });
       return function () {
         window.cancelAnimationFrame(frame);
