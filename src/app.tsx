@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { DocsPage } from './pages/DocsPage';
 import { LandingPage } from './pages/LandingPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { parseColorInput, rgbToOklch } from './lib/color';
@@ -20,13 +21,14 @@ function applyTokens(scale: ScaleColor[]) {
   }
 }
 
-function normalizePathname(pathname: string): '/' | '/app' {
+function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
   if (pathname === '/app') return '/app';
+  if (pathname === '/docs') return '/docs';
   return '/';
 }
 
 export function App() {
-  var routeState = useState<'/' | '/app'>(normalizePathname(window.location.pathname));
+  var routeState = useState<'/' | '/app' | '/docs'>(normalizePathname(window.location.pathname));
   var route = routeState[0];
   var setRoute = routeState[1];
 
@@ -157,6 +159,10 @@ export function App() {
         onHarmonyTypeChange={setHarmonyType}
       />
     );
+  }
+
+  if (route === '/docs') {
+    return <DocsPage onNavigate={navigate} />;
   }
 
   return <LandingPage baseHex={colorInput} onNavigate={navigate} />;

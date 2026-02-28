@@ -6,6 +6,7 @@ OKScale is a Preact + TypeScript app for generating perceptually uniform color s
 
 - `/` Landing: value proposition, Oklch education, and product flow
 - `/app` Workspace: generator + sticky export panel for fast production handoff
+- `/docs` Docs: integration snippets for CSS, Tailwind, Design Tokens, and Figma Variables
 
 ## Core Features
 
