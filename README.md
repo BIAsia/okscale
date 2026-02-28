@@ -20,6 +20,7 @@ OKScale is a Preact + TypeScript app for generating perceptually uniform color s
 - Local workspace state persistence (restores last used setup)
 - Starter presets for sub-90s first export flow
 - Recent color history chips for fast switching
+- Image upload color theme extraction with one-click apply
 - Live token binding: workspace interactions recolor site accents in real time
 
 ## Quick Start
