@@ -1230,7 +1230,7 @@ a:focus-visible {
   transform: translateY(0);
 }
 
-/* ── Banner (flex-based hover) ── */
+/* ── Banner (shade-based, all shades always in DOM) ── */
 .landing-banner {
   display: flex;
   width: 100%;
@@ -1239,56 +1239,27 @@ a:focus-visible {
 }
 
 .landing-banner-role {
-  position: relative;
   flex: 1;
   height: 100%;
   overflow: hidden;
   cursor: pointer;
   display: flex;
   transition: flex 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-  border-right: 1.5px solid var(--ok-neutral-950);
-}
-
-.landing-banner-role:last-child {
-  border-right: none;
 }
 
 .landing-banner-role--hidden {
   flex: 0;
-  border-right-width: 0;
 }
 
-.landing-banner-role-label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 400;
-  font-size: 16px;
-  z-index: 2;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.landing-banner-role--active .landing-banner-role-label {
-  opacity: 0;
-}
-
-.landing-banner-shades {
-  display: flex;
-  width: 100%;
-  height: 100%;
-}
-
+/* Each shade: default width 0, except the base shade */
 .landing-banner-shade {
-  flex: 0;
+  flex: 0 0 0%;
   height: 100%;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   transition: flex 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   border-right: 1.5px solid var(--ok-neutral-950);
 }
@@ -1297,21 +1268,48 @@ a:focus-visible {
   border-right: none;
 }
 
-.landing-banner-role--active .landing-banner-shade {
-  flex: 1;
+/* Base shade: visible by default, takes full width of its role */
+.landing-banner-shade--base {
+  flex: 1 1 0%;
 }
 
+/* When role is active (hovered): all shades expand equally */
+.landing-banner-role--active .landing-banner-shade {
+  flex: 1 1 0%;
+}
+
+/* When role is hidden: base shade also collapses */
+.landing-banner-role--hidden .landing-banner-shade--base {
+  flex: 0 0 0%;
+}
+
+/* Role label: shown on the base shade in default state */
+.landing-banner-role-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Shade step label: hidden by default, shown on hover */
 .landing-banner-shade-label {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
   font-size: 16px;
   opacity: 0;
   white-space: nowrap;
+  position: absolute;
   transition: opacity 0.3s ease 0.15s;
 }
 
 .landing-banner-role--active .landing-banner-shade-label {
   opacity: 1;
+}
+
+/* Hide role label when active */
+.landing-banner-role--active .landing-banner-role-label {
+  display: none;
 }
 
 /* Content area */
@@ -1334,11 +1332,10 @@ a:focus-visible {
 }
 
 .landing-tagline {
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 24px;
   line-height: 1.35;
-  letter-spacing: -0.5px;
   color: var(--ok-neutral-950);
 }
 
@@ -1354,13 +1351,12 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 20px;
-  letter-spacing: -0.2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 16px;
   padding: 16px 24px;
   border-radius: 999px;
-  border: 1px solid #000;
+  border: 1.5px solid var(--ok-primary-950);
   transition: transform 0.15s ease;
 }
 
@@ -1369,13 +1365,13 @@ a:focus-visible {
 }
 
 .landing-btn-dark {
-  background: #000;
-  color: #fff;
+  background: var(--ok-primary-950);
+  color: var(--ok-primary-50);
 }
 
 .landing-btn-accent {
   background: var(--ok-highlight);
-  color: var(--ok-highlight-fg);
+  color: var(--ok-primary-950);
 }
 
 .landing-icon-btn {
@@ -1421,7 +1417,7 @@ a:focus-visible {
 .landing-link {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--ok-neutral-500);
   text-decoration: none;
   transition: color 0.2s ease;
