@@ -6,6 +6,7 @@ import { SHADE_MODES, type ShadeMode } from '../lib/shades';
 import { extractThemeFromImageFile } from '../lib/image-theme';
 import type { Oklch } from '../lib/color';
 import { buildUsageMatrix, contrastRatio, ratioGrade } from '../lib/contrast';
+import type { AnchorBehavior } from '../lib/scale';
 
 type GeneratorProps = {
   colorInput: string;
@@ -19,6 +20,9 @@ type GeneratorProps = {
   onColorChange: (value: string) => void;
   onShadeModeChange: (mode: ShadeMode) => void;
   onHarmonyTypeChange: (type: HarmonyType) => void;
+  anchorBehavior: AnchorBehavior;
+  anchorStep: number;
+  onAnchorBehaviorChange: (value: AnchorBehavior) => void;
   recentColors: string[];
   onSelectRecentColor: (value: string) => void;
 };
@@ -214,6 +218,36 @@ export function Generator(props: GeneratorProps) {
               );
             })}
           </div>
+        </div>
+
+        <div class="card flex flex-col gap-sm">
+          <h3 class="text-body-lg">Input Anchor Behavior</h3>
+          <div class="shade-mode-row">
+            <button
+              type="button"
+              class={props.anchorBehavior === 'preserve-input' ? 'btn btn-primary' : 'btn btn-secondary'}
+              aria-pressed={props.anchorBehavior === 'preserve-input' ? 'true' : 'false'}
+              onClick={function () {
+                props.onAnchorBehaviorChange('preserve-input');
+              }}
+            >
+              Keep input color
+            </button>
+            <button
+              type="button"
+              class={props.anchorBehavior === 'auto-gamut' ? 'btn btn-primary' : 'btn btn-secondary'}
+              aria-pressed={props.anchorBehavior === 'auto-gamut' ? 'true' : 'false'}
+              onClick={function () {
+                props.onAnchorBehaviorChange('auto-gamut');
+              }}
+            >
+              Auto gamut anchor
+            </button>
+          </div>
+          <p class="text-body text-muted">
+            Input color anchors at <span class="text-code">primary-{props.anchorStep}</span>. Current mode:{' '}
+            {props.anchorBehavior === 'preserve-input' ? 'exact input preserved' : 'auto gamut-optimized tone'}.
+          </p>
         </div>
 
         <div class="card flex flex-col gap-sm">

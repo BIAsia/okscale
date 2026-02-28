@@ -8,7 +8,7 @@ import { generateHarmony, type HarmonyType } from './lib/harmony';
 import { generateFullPalette } from './lib/palette';
 import { decodeWorkspaceState, encodeWorkspaceState, type WorkspaceShareState } from './lib/share';
 import type { ShadeMode } from './lib/shades';
-import type { ScaleColor } from './lib/scale';
+import { nearestScaleStepForLightness, type AnchorBehavior, type ScaleColor } from './lib/scale';
 
 var WORKSPACE_STATE_STORAGE_KEY = 'okscale.workspace.v1';
 var RECENT_COLORS_STORAGE_KEY = 'okscale.recent-colors.v1';
@@ -35,7 +35,8 @@ function fallbackWorkspaceState(): WorkspaceShareState {
   return {
     colorInput: '#3b82f6',
     shadeMode: 'natural',
-    harmonyType: 'complementary'
+    harmonyType: 'complementary',
+    anchorBehavior: 'preserve-input'
   };
 }
 
@@ -47,7 +48,13 @@ function loadWorkspaceStateFromStorage(): WorkspaceShareState | null {
     if (!parsed || typeof parsed.colorInput !== 'string') return null;
     if (typeof parsed.shadeMode !== 'string') return null;
     if (typeof parsed.harmonyType !== 'string') return null;
-    return parsed;
+
+    return {
+      colorInput: parsed.colorInput,
+      shadeMode: parsed.shadeMode,
+      harmonyType: parsed.harmonyType,
+      anchorBehavior: parsed.anchorBehavior === 'auto-gamut' ? 'auto-gamut' : 'preserve-input'
+    };
   } catch (_err) {
     return null;
   }
@@ -102,6 +109,10 @@ export function App() {
   var harmonyType = harmonyTypeState[0];
   var setHarmonyType = harmonyTypeState[1];
 
+  var anchorBehaviorState = useState<AnchorBehavior>(initialWorkspace.anchorBehavior);
+  var anchorBehavior = anchorBehaviorState[0];
+  var setAnchorBehavior = anchorBehaviorState[1];
+
   var recentColorsState = useState<string[]>(initialRecentColors);
   var recentColors = recentColorsState[0];
   var setRecentColors = recentColorsState[1];
@@ -114,10 +125,18 @@ export function App() {
     return parsedRgb ? rgbToOklch(parsedRgb) : null;
   }, [parsedRgb]);
 
+  var anchorStep = useMemo(function () {
+    return primaryOklch ? nearestScaleStepForLightness(primaryOklch.l) : 500;
+  }, [primaryOklch]);
+
   var palette = useMemo(function () {
-    if (!primaryOklch) return null;
-    return generateFullPalette(primaryOklch, shadeMode);
-  }, [primaryOklch, shadeMode]);
+    if (!primaryOklch || !parsedRgb) return null;
+    return generateFullPalette(primaryOklch, shadeMode, {
+      behavior: anchorBehavior,
+      anchorHex: rgbToHex(parsedRgb),
+      anchorStep: anchorStep
+    });
+  }, [primaryOklch, parsedRgb, shadeMode, anchorBehavior, anchorStep]);
 
   var harmony = useMemo(function () {
     if (!primaryOklch) return null;
@@ -166,6 +185,7 @@ export function App() {
         setColorInput(fromUrl.colorInput);
         setShadeMode(fromUrl.shadeMode);
         setHarmonyType(fromUrl.harmonyType);
+        setAnchorBehavior(fromUrl.anchorBehavior);
       }
       window.scrollTo({ top: 0 });
     }
@@ -181,7 +201,8 @@ export function App() {
       var state: WorkspaceShareState = {
         colorInput: colorInput,
         shadeMode: shadeMode,
-        harmonyType: harmonyType
+        harmonyType: harmonyType,
+        anchorBehavior: anchorBehavior
       };
       try {
         window.localStorage.setItem(WORKSPACE_STATE_STORAGE_KEY, JSON.stringify(state));
@@ -189,7 +210,7 @@ export function App() {
         // no-op
       }
     },
-    [colorInput, shadeMode, harmonyType]
+    [colorInput, shadeMode, harmonyType, anchorBehavior]
   );
 
   useEffect(
@@ -209,14 +230,15 @@ export function App() {
       var params = encodeWorkspaceState({
         colorInput: colorInput,
         shadeMode: shadeMode,
-        harmonyType: harmonyType
+        harmonyType: harmonyType,
+        anchorBehavior: anchorBehavior
       });
       var current = window.location.pathname + window.location.search;
       var next = '/app?' + params;
       if (current === next) return;
       window.history.replaceState({}, '', next);
     },
-    [route, colorInput, shadeMode, harmonyType]
+    [route, colorInput, shadeMode, harmonyType, anchorBehavior]
   );
 
   function navigate(to: string) {
@@ -283,6 +305,9 @@ export function App() {
         onColorChange={setColorInput}
         onShadeModeChange={setShadeMode}
         onHarmonyTypeChange={setHarmonyType}
+        anchorBehavior={anchorBehavior}
+        anchorStep={anchorStep}
+        onAnchorBehaviorChange={setAnchorBehavior}
         recentColors={recentColors}
         onSelectRecentColor={setColorInput}
       />
