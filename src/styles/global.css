@@ -635,6 +635,50 @@ body {
   word-break: break-word;
 }
 
+.preview-surface {
+  border: 1px solid;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.preview-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preview-button-primary,
+.preview-button-secondary {
+  border-radius: 999px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.preview-button-secondary {
+  border-style: solid;
+}
+
 /* Color Swatch */
 .swatch {
   width: 100%;
@@ -819,7 +863,8 @@ a:focus-visible {
   }
 
   .workspace-topbar-actions .btn,
-  .starter-preset-row .btn {
+  .starter-preset-row .btn,
+  .preview-actions button {
     flex: 1;
   }
 
