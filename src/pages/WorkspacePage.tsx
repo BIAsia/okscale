@@ -13,6 +13,22 @@ type WorkspacePageProps = {
   palette: FullPalette | null;
 } & GeneratorProps;
 
+type StarterPreset = {
+  id: string;
+  label: string;
+  colorInput: string;
+  shadeMode: GeneratorProps['shadeMode'];
+  harmonyType: GeneratorProps['harmonyType'];
+};
+
+var STARTER_PRESETS: StarterPreset[] = [
+  { id: 'brand-blue', label: 'Brand Blue', colorInput: '#3b82f6', shadeMode: 'natural', harmonyType: 'complementary' },
+  { id: 'forest', label: 'Forest', colorInput: '#0f766e', shadeMode: 'cool', harmonyType: 'analogous' },
+  { id: 'sunset', label: 'Sunset', colorInput: '#ea580c', shadeMode: 'warm', harmonyType: 'split-complementary' },
+  { id: 'violet', label: 'Violet', colorInput: '#7c3aed', shadeMode: 'natural', harmonyType: 'triadic' },
+  { id: 'mono', label: 'Monochrome', colorInput: '#525252', shadeMode: 'none', harmonyType: 'complementary' }
+];
+
 export function WorkspacePage(props: WorkspacePageProps) {
   var copiedState = useState(false);
   var copied = copiedState[0];
@@ -81,6 +97,12 @@ export function WorkspacePage(props: WorkspacePageProps) {
     }
   }
 
+  function applyStarterPreset(preset: StarterPreset) {
+    props.onColorChange(preset.colorInput);
+    props.onShadeModeChange(preset.shadeMode);
+    props.onHarmonyTypeChange(preset.harmonyType);
+  }
+
   return (
     <div class="page-wrap workspace-page">
       <Nav mode="workspace" onNavigate={props.onNavigate} />
@@ -110,6 +132,29 @@ export function WorkspacePage(props: WorkspacePageProps) {
                   <span key={item} class="trust-pill text-code text-small">
                     {item}
                   </span>
+                );
+              })}
+            </div>
+          </article>
+
+          <article class="card starter-strip">
+            <div class="flex flex-col gap-sm">
+              <p class="text-code text-small text-muted">Starter presets for faster first export</p>
+              <p class="text-body text-muted">Pick one preset to auto-fill color + shade + harmony, then export immediately.</p>
+            </div>
+            <div class="starter-preset-row">
+              {STARTER_PRESETS.map(function (preset) {
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    class={preset.colorInput === props.colorInput ? 'btn btn-primary' : 'btn btn-secondary'}
+                    onClick={function () {
+                      applyStarterPreset(preset);
+                    }}
+                  >
+                    {preset.label}
+                  </button>
                 );
               })}
             </div>
