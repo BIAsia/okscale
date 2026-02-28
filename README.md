@@ -13,7 +13,7 @@ OKScale is a Preact + TypeScript app for generating perceptually uniform color s
 - Parse color input in `hex`, `rgb()`, `hsl()`, and `oklch()`
 - Generate 11-step scales (`50-950`) with gamut-safe Oklch mapping
 - Build full palette roles: `primary`, `secondary`, `accent`, `neutral`
-- Contrast usage matrix with practical text/background pair recommendations
+- Contrast usage matrix with practical text/background pair recommendations + copyable CSS pair snippets
 - Export to CSS custom properties, Tailwind config, SCSS, Design Tokens JSON, and Figma Variables JSON
 - Token naming presets: `numeric` (`50-950`) and `semantic` (`bg/base/strong/text-*`)
 - Shareable workspace links (`/app?color=...&shade=...&harmony=...`)

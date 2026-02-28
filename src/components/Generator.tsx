@@ -51,6 +51,36 @@ export function Generator(props: GeneratorProps) {
     return buildUsageMatrix(props.palette.primary.scale);
   }, [props.palette]);
 
+  var copiedPairState = useState('');
+  var copiedPair = copiedPairState[0];
+  var setCopiedPair = copiedPairState[1];
+
+  async function copyContrastSnippet(row: { label: string; textStep: number; backgroundStep: number; ratio: number }) {
+    if (!props.palette) return;
+    var textHex = scaleHex(props.palette.primary, row.textStep, '#000000');
+    var backgroundHex = scaleHex(props.palette.primary, row.backgroundStep, '#ffffff');
+    var snippet = [
+      '/* ' + row.label + ' */',
+      '.example {',
+      '  color: var(--primary-' + row.textStep + ');',
+      '  background: var(--primary-' + row.backgroundStep + ');',
+      '  /* fallback */',
+      '  color: ' + textHex + ';',
+      '  background: ' + backgroundHex + ';',
+      '}'
+    ].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopiedPair(row.label);
+      window.setTimeout(function () {
+        setCopiedPair('');
+      }, 1200);
+    } catch (_err) {
+      window.alert('Clipboard access failed.');
+    }
+  }
+
   return (
     <section class="section workspace-generator">
       <div class="section-inner flex flex-col gap-lg">
@@ -301,6 +331,7 @@ export function Generator(props: GeneratorProps) {
               <span>Pair</span>
               <span>Ratio</span>
               <span>Status</span>
+              <span>Action</span>
             </div>
             {usageRows.map(function (row) {
               return (
@@ -311,6 +342,15 @@ export function Generator(props: GeneratorProps) {
                   </span>
                   <span>{row.ratio.toFixed(2)}</span>
                   <span>{row.pass ? ratioGrade(row.ratio) : 'Improve'}</span>
+                  <button
+                    type="button"
+                    class="btn btn-secondary contrast-copy-button"
+                    onClick={function () {
+                      copyContrastSnippet(row);
+                    }}
+                  >
+                    {copiedPair === row.label ? 'Copied' : 'Copy CSS'}
+                  </button>
                 </div>
               );
             })}

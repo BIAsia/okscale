@@ -632,7 +632,12 @@ body {
 
 .contrast-matrix-head,
 .contrast-matrix-row {
-  grid-template-columns: minmax(180px, 1.6fr) minmax(140px, 1.2fr) 90px 90px;
+  grid-template-columns: minmax(180px, 1.5fr) minmax(140px, 1.1fr) 90px 90px 110px;
+}
+
+.contrast-copy-button {
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
 .contrast-grid-head,
