@@ -1,4 +1,8 @@
-export function HowItWorks() {
+type HowItWorksProps = {
+  onOpenApp?: () => void;
+};
+
+export function HowItWorks(props: HowItWorksProps) {
   return (
     <section id="how" class="section">
       <div class="section-inner flex flex-col gap-md">
@@ -10,8 +14,7 @@ export function HowItWorks() {
             <p class="step-number">01</p>
             <h3 class="text-body-lg">Pick a Color</h3>
             <p class="text-body">
-              Start with any brand color - hex, RGB, or use the native picker. OKScale extracts the Oklch values and
-              uses them as the foundation for your entire color system.
+              Start with any brand color - hex, RGB, HSL, or Oklch. OKScale parses and validates input instantly.
             </p>
           </article>
 
@@ -19,8 +22,7 @@ export function HowItWorks() {
             <p class="step-number">02</p>
             <h3 class="text-body-lg">Generate Your System</h3>
             <p class="text-body">
-              One color generates four coordinated palettes - primary, secondary, accent, and neutral. Choose shade
-              modes and harmony types to fine-tune the feel. Every step is perceptually uniform.
+              One color generates four coordinated palettes. Tune shade strategy and advanced options when needed.
             </p>
           </article>
 
@@ -28,8 +30,8 @@ export function HowItWorks() {
             <p class="step-number">03</p>
             <h3 class="text-body-lg">Export Everywhere</h3>
             <p class="text-body">
-              Copy production-ready code in CSS custom properties, Tailwind config, SCSS maps, W3C Design Tokens, or
-              Figma Variables. Your entire color system, one click away.
+              Copy production-ready code in CSS custom properties, Tailwind config, SCSS maps, Design Tokens, and
+              Figma Variables.
             </p>
           </article>
         </div>
@@ -38,13 +40,19 @@ export function HowItWorks() {
           <div class="flex flex-col gap-sm">
             <h3 class="text-sub">Ready to build?</h3>
             <p class="text-body" style="color: rgba(255, 255, 255, 0.7);">
-              Start with your brand color above, or explore the Oklch color space.
+              Open the workspace and ship your first token set in under 90 seconds.
             </p>
           </div>
           <div class="flex gap-sm cta-actions" style="flex-wrap: wrap;">
-            <a class="btn btn-accent" href="#generator">
-              Try the Generator
-            </a>
+            <button
+              type="button"
+              class="btn btn-accent"
+              onClick={function () {
+                if (props.onOpenApp) props.onOpenApp();
+              }}
+            >
+              Open Workspace
+            </button>
             <a class="btn btn-secondary" href="#why-oklch" style="border-color: #fff; color: #fff;">
               Learn about Oklch
             </a>

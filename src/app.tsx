@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { ExportSection } from './components/ExportSection';
-import { Footer } from './components/Footer';
-import { Generator } from './components/Generator';
-import { Hero } from './components/Hero';
-import { HowItWorks } from './components/HowItWorks';
-import { Nav } from './components/Nav';
-import { WhyOklch } from './components/WhyOklch';
+import { LandingPage } from './pages/LandingPage';
+import { WorkspacePage } from './pages/WorkspacePage';
 import { parseColorInput, rgbToOklch } from './lib/color';
 import { suggestGradients } from './lib/gradient';
 import { generateHarmony, type HarmonyType } from './lib/harmony';
@@ -25,7 +20,16 @@ function applyTokens(scale: ScaleColor[]) {
   }
 }
 
+function normalizePathname(pathname: string): '/' | '/app' {
+  if (pathname === '/app') return '/app';
+  return '/';
+}
+
 export function App() {
+  var routeState = useState<'/' | '/app'>(normalizePathname(window.location.pathname));
+  var route = routeState[0];
+  var setRoute = routeState[1];
+
   var colorInputState = useState('#3b82f6');
   var colorInput = colorInputState[0];
   var setColorInput = colorInputState[1];
@@ -76,68 +80,84 @@ export function App() {
   );
 
   useEffect(function () {
-    var sections = document.querySelectorAll('.section');
-    if (!('IntersectionObserver' in window)) {
-      sections.forEach(function (section) {
-        section.classList.add('visible');
-      });
-      return;
+    function onPopState() {
+      setRoute(normalizePathname(window.location.pathname));
+      window.scrollTo({ top: 0 });
     }
 
-    var observer = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    sections.forEach(function (section) {
-      observer.observe(section);
-    });
-
+    window.addEventListener('popstate', onPopState);
     return function () {
-      sections.forEach(function (section) {
-        observer.unobserve(section);
-      });
-      observer.disconnect();
+      window.removeEventListener('popstate', onPopState);
     };
   }, []);
+
+  function navigate(to: string) {
+    var next = normalizePathname(to);
+    if (next !== normalizePathname(window.location.pathname)) {
+      window.history.pushState({}, '', next);
+    }
+    setRoute(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  useEffect(
+    function () {
+      var sections = document.querySelectorAll('.section');
+      if (!('IntersectionObserver' in window)) {
+        sections.forEach(function (section) {
+          section.classList.add('visible');
+        });
+        return;
+      }
+
+      var observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+
+      sections.forEach(function (section) {
+        section.classList.remove('visible');
+        observer.observe(section);
+      });
+
+      return function () {
+        sections.forEach(function (section) {
+          observer.unobserve(section);
+        });
+        observer.disconnect();
+      };
+    },
+    [route, palette]
+  );
 
   var colorError = parsedRgb
     ? ''
     : 'Color format not recognized. Try #3b82f6, rgb(59,130,246), hsl(217,91%,60%), or oklch(0.62 0.19 259).';
 
-  return (
-    <div class="page-wrap">
-      <Nav />
-      <div id="hero">
-        <Hero />
-      </div>
-      <WhyOklch baseHex={colorInput} />
-      <div id="generator">
-        <Generator
-          colorInput={colorInput}
-          colorError={colorError}
-          primaryOklch={primaryOklch}
-          palette={palette}
-          harmony={harmony}
-          gradients={gradients}
-          shadeMode={shadeMode}
-          harmonyType={harmonyType}
-          onColorChange={setColorInput}
-          onShadeModeChange={setShadeMode}
-          onHarmonyTypeChange={setHarmonyType}
-        />
-      </div>
-      <div id="export">
-        <ExportSection palette={palette} />
-      </div>
-      <HowItWorks />
-      <Footer />
-    </div>
-  );
+  if (route === '/app') {
+    return (
+      <WorkspacePage
+        onNavigate={navigate}
+        palette={palette}
+        colorInput={colorInput}
+        colorError={colorError}
+        primaryOklch={primaryOklch}
+        harmony={harmony}
+        gradients={gradients}
+        shadeMode={shadeMode}
+        harmonyType={harmonyType}
+        onColorChange={setColorInput}
+        onShadeModeChange={setShadeMode}
+        onHarmonyTypeChange={setHarmonyType}
+      />
+    );
+  }
+
+  return <LandingPage baseHex={colorInput} onNavigate={navigate} />;
 }
