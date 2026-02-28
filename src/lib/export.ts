@@ -6,10 +6,34 @@ function slug(name: string): string {
   return key || 'palette';
 }
 
-function toScaleMap(scale: ScaleColor[]): Record<string, string> {
+export var NAMING_PRESETS = ['numeric', 'semantic'] as const;
+export type NamingPreset = (typeof NAMING_PRESETS)[number];
+
+var SEMANTIC_STEP_NAMES: Record<number, string> = {
+  50: 'bg-soft',
+  100: 'bg',
+  200: 'surface',
+  300: 'border-soft',
+  400: 'border',
+  500: 'base',
+  600: 'strong',
+  700: 'stronger',
+  800: 'text-soft',
+  900: 'text',
+  950: 'text-strong'
+};
+
+function tokenName(step: number, namingPreset: NamingPreset): string {
+  if (namingPreset === 'semantic') {
+    return SEMANTIC_STEP_NAMES[step] || String(step);
+  }
+  return String(step);
+}
+
+function toScaleMap(scale: ScaleColor[], namingPreset: NamingPreset): Record<string, string> {
   var map: Record<string, string> = {};
   scale.forEach(function (item) {
-    map[String(item.step)] = item.hex;
+    map[tokenName(item.step, namingPreset)] = item.hex;
   });
   return map;
 }
@@ -20,42 +44,42 @@ function roleScale(palette: FullPalette, role: PaletteRole): ScaleColor[] {
   return palette[role].scale;
 }
 
-export function paletteToCss(name: string, scale: ScaleColor[]): string {
+export function paletteToCss(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
   var key = slug(name);
   var lines = [':root {'];
   scale.forEach(function (item) {
-    lines.push('  --' + key + '-' + item.step + ': ' + item.hex + ';');
+    lines.push('  --' + key + '-' + tokenName(item.step, namingPreset) + ': ' + item.hex + ';');
   });
   lines.push('}');
   return lines.join('\n');
 }
 
-export function paletteToTailwind(name: string, scale: ScaleColor[]): string {
+export function paletteToTailwind(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
   var key = slug(name);
   var lines = ['export default {', '  theme: {', '    extend: {', '      colors: {', '        ' + key + ': {'];
   scale.forEach(function (item) {
-    lines.push("          '" + item.step + "': '" + item.hex + "',");
+    lines.push("          '" + tokenName(item.step, namingPreset) + "': '" + item.hex + "',");
   });
   lines.push('        }', '      }', '    }', '  }', '};');
   return lines.join('\n');
 }
 
-export function paletteToScss(name: string, scale: ScaleColor[]): string {
+export function paletteToScss(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
   var key = slug(name);
   var lines = ['$' + key + ': ('];
   scale.forEach(function (item, index) {
     var comma = index === scale.length - 1 ? '' : ',';
-    lines.push('  ' + item.step + ': ' + item.hex + comma);
+    lines.push('  ' + tokenName(item.step, namingPreset) + ': ' + item.hex + comma);
   });
   lines.push(');');
   return lines.join('\n');
 }
 
-export function paletteToDesignTokens(name: string, scale: ScaleColor[]): string {
+export function paletteToDesignTokens(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
   var key = slug(name);
   var tokens: Record<string, { value: string; type: string }> = {};
   scale.forEach(function (item) {
-    tokens[item.step] = { value: item.hex, type: 'color' };
+    tokens[tokenName(item.step, namingPreset)] = { value: item.hex, type: 'color' };
   });
 
   return JSON.stringify(
@@ -68,9 +92,9 @@ export function paletteToDesignTokens(name: string, scale: ScaleColor[]): string
   );
 }
 
-export function paletteToFigmaVariables(name: string, scale: ScaleColor[]): string {
+export function paletteToFigmaVariables(name: string, scale: ScaleColor[], namingPreset: NamingPreset = 'numeric'): string {
   var key = slug(name);
-  var valuesByMode = toScaleMap(scale);
+  var valuesByMode = toScaleMap(scale, namingPreset);
   var payload = {
     collections: [
       {
@@ -91,12 +115,12 @@ export function paletteToFigmaVariables(name: string, scale: ScaleColor[]): stri
   return JSON.stringify(payload, null, 2);
 }
 
-export function fullPaletteToCss(palette: FullPalette): string {
+export function fullPaletteToCss(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
   var lines = [':root {'];
   PALETTE_ROLES.forEach(function (role, roleIndex) {
     var scale = roleScale(palette, role);
     scale.forEach(function (item) {
-      lines.push('  --' + role + '-' + item.step + ': ' + item.hex + ';');
+      lines.push('  --' + role + '-' + tokenName(item.step, namingPreset) + ': ' + item.hex + ';');
     });
     if (roleIndex < PALETTE_ROLES.length - 1) {
       lines.push('');
@@ -106,13 +130,13 @@ export function fullPaletteToCss(palette: FullPalette): string {
   return lines.join('\n');
 }
 
-export function fullPaletteToTailwind(palette: FullPalette): string {
+export function fullPaletteToTailwind(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
   var lines = ['export default {', '  theme: {', '    extend: {', '      colors: {'];
 
   PALETTE_ROLES.forEach(function (role, roleIndex) {
     lines.push('        ' + role + ': {');
     roleScale(palette, role).forEach(function (item) {
-      lines.push("          '" + item.step + "': '" + item.hex + "',");
+      lines.push("          '" + tokenName(item.step, namingPreset) + "': '" + item.hex + "',");
     });
     lines.push(roleIndex === PALETTE_ROLES.length - 1 ? '        }' : '        },');
   });
@@ -121,14 +145,14 @@ export function fullPaletteToTailwind(palette: FullPalette): string {
   return lines.join('\n');
 }
 
-export function fullPaletteToScss(palette: FullPalette): string {
+export function fullPaletteToScss(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
   var lines: string[] = [];
   PALETTE_ROLES.forEach(function (role, roleIndex) {
     lines.push('$' + role + ': (');
     var scale = roleScale(palette, role);
     scale.forEach(function (item, index) {
       var comma = index === scale.length - 1 ? '' : ',';
-      lines.push('  ' + item.step + ': ' + item.hex + comma);
+      lines.push('  ' + tokenName(item.step, namingPreset) + ': ' + item.hex + comma);
     });
     lines.push(');');
     if (roleIndex < PALETTE_ROLES.length - 1) {
@@ -138,12 +162,12 @@ export function fullPaletteToScss(palette: FullPalette): string {
   return lines.join('\n');
 }
 
-export function fullPaletteToDesignTokens(palette: FullPalette): string {
+export function fullPaletteToDesignTokens(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
   var payload: Record<string, Record<string, { value: string; type: string }>> = {};
   PALETTE_ROLES.forEach(function (role) {
     var tokens: Record<string, { value: string; type: string }> = {};
     roleScale(palette, role).forEach(function (item) {
-      tokens[item.step] = { value: item.hex, type: 'color' };
+      tokens[tokenName(item.step, namingPreset)] = { value: item.hex, type: 'color' };
     });
     payload[role] = tokens;
   });
@@ -160,13 +184,13 @@ export function fullPaletteToDesignTokens(palette: FullPalette): string {
   );
 }
 
-export function fullPaletteToFigmaVariables(palette: FullPalette): string {
+export function fullPaletteToFigmaVariables(palette: FullPalette, namingPreset: NamingPreset = 'numeric'): string {
   var variables = PALETTE_ROLES.map(function (role) {
     return {
       name: role,
       type: 'COLOR',
       valuesByMode: {
-        Light: toScaleMap(roleScale(palette, role))
+        Light: toScaleMap(roleScale(palette, role), namingPreset)
       }
     };
   });
@@ -189,18 +213,27 @@ export function fullPaletteToFigmaVariables(palette: FullPalette): string {
 export var EXPORT_FORMATS = ['css', 'tailwind', 'tokens', 'figma', 'scss'] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
-export function formatExport(format: ExportFormat, name: string, scale: ScaleColor[]): string {
-  if (format === 'tailwind') return paletteToTailwind(name, scale);
-  if (format === 'tokens') return paletteToDesignTokens(name, scale);
-  if (format === 'figma') return paletteToFigmaVariables(name, scale);
-  if (format === 'scss') return paletteToScss(name, scale);
-  return paletteToCss(name, scale);
+export function formatExport(
+  format: ExportFormat,
+  name: string,
+  scale: ScaleColor[],
+  namingPreset: NamingPreset = 'numeric'
+): string {
+  if (format === 'tailwind') return paletteToTailwind(name, scale, namingPreset);
+  if (format === 'tokens') return paletteToDesignTokens(name, scale, namingPreset);
+  if (format === 'figma') return paletteToFigmaVariables(name, scale, namingPreset);
+  if (format === 'scss') return paletteToScss(name, scale, namingPreset);
+  return paletteToCss(name, scale, namingPreset);
 }
 
-export function formatFullExport(format: ExportFormat, palette: FullPalette): string {
-  if (format === 'tailwind') return fullPaletteToTailwind(palette);
-  if (format === 'tokens') return fullPaletteToDesignTokens(palette);
-  if (format === 'figma') return fullPaletteToFigmaVariables(palette);
-  if (format === 'scss') return fullPaletteToScss(palette);
-  return fullPaletteToCss(palette);
+export function formatFullExport(
+  format: ExportFormat,
+  palette: FullPalette,
+  namingPreset: NamingPreset = 'numeric'
+): string {
+  if (format === 'tailwind') return fullPaletteToTailwind(palette, namingPreset);
+  if (format === 'tokens') return fullPaletteToDesignTokens(palette, namingPreset);
+  if (format === 'figma') return fullPaletteToFigmaVariables(palette, namingPreset);
+  if (format === 'scss') return fullPaletteToScss(palette, namingPreset);
+  return fullPaletteToCss(palette, namingPreset);
 }
