@@ -33,7 +33,7 @@ export function Hero(props: HeroProps) {
             Why Oklch
           </a>
         </div>
-        <div class="mt-md" style={{ width: '80px', height: '2px', background: 'var(--ok-accent)' }} aria-hidden="true" />
+        <div class="mt-md" style={{ width: '80px', height: '2px', background: 'var(--ok-highlight)' }} aria-hidden="true" />
       </div>
       <a href="#why-oklch" class="hero-scroll-indicator text-nav" aria-label="Scroll to Why Oklch">
         ↓
