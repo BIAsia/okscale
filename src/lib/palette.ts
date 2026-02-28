@@ -55,7 +55,7 @@ export function generateFullPalette(
   );
 
   var anchorStep = primaryAnchor?.anchorStep || nearestScaleStepForLightness(primaryMapped.l);
-  var anchorOptions = primaryAnchor
+  var primaryAnchorOptions = primaryAnchor
     ? {
         behavior: primaryAnchor.behavior,
         anchorStep: anchorStep,
@@ -63,10 +63,17 @@ export function generateFullPalette(
       }
     : undefined;
 
-  var primaryScale = generateShiftedScale(primaryMapped, shadeMode, anchorOptions);
-  var secondaryScale = generateShiftedScale(complementary, shadeMode);
-  var accentScale = generateShiftedScale(analogous, shadeMode);
-  var neutralScale = generateScale(neutralBase);
+  var generatedAnchorOptions = primaryAnchor
+    ? {
+        behavior: 'auto-gamut' as const,
+        anchorStep: anchorStep
+      }
+    : undefined;
+
+  var primaryScale = generateShiftedScale(primaryMapped, shadeMode, primaryAnchorOptions);
+  var secondaryScale = generateShiftedScale(complementary, shadeMode, generatedAnchorOptions);
+  var accentScale = generateShiftedScale(analogous, shadeMode, generatedAnchorOptions);
+  var neutralScale = generateScale(neutralBase, generatedAnchorOptions);
 
   return {
     primary: createEntry('primary', 'Primary', primaryMapped, primaryScale),
