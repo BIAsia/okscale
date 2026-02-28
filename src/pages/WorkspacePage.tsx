@@ -177,6 +177,8 @@ export function WorkspacePage(props: WorkspacePageProps) {
               onColorChange={props.onColorChange}
               onShadeModeChange={props.onShadeModeChange}
               onHarmonyTypeChange={props.onHarmonyTypeChange}
+              recentColors={props.recentColors}
+              onSelectRecentColor={props.onSelectRecentColor}
             />
           </div>
           <div class="workspace-aside">

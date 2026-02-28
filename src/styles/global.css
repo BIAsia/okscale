@@ -497,6 +497,40 @@ body {
   flex-wrap: wrap;
 }
 
+.recent-color-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recent-color-chip {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.recent-color-chip.active {
+  border-color: var(--ok-accent);
+}
+
+.recent-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 .compact-compare-card {
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
