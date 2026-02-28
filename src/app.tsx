@@ -33,7 +33,7 @@ function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
 
 function fallbackWorkspaceState(): WorkspaceShareState {
   return {
-    colorInput: '#3b82f6',
+    colorInput: '#d9ff00',
     shadeMode: 'natural',
     harmonyType: 'complementary',
     anchorBehavior: 'preserve-input'

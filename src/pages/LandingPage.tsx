@@ -38,48 +38,34 @@ function BannerColumn(props: { entry: PaletteEntry | null; label: string }) {
   var setHovered = hoverState[1];
 
   var entry = props.entry;
-  if (!entry) {
-    return (
-      <div class="landing-banner-col">
-        <div class="landing-banner-single" style={{ background: '#ccc' }}>
-          <span class="landing-banner-hex">—</span>
-        </div>
-      </div>
-    );
-  }
-
-  var scale = entry.scale;
-  var baseHex = entry.baseHex;
-
-  if (hovered && scale && scale.length > 0) {
-    return (
-      <div
-        class="landing-banner-col landing-banner-col--expanded"
-        onMouseEnter={function () { setHovered(true); }}
-        onMouseLeave={function () { setHovered(false); }}
-      >
-        {scale.map(function (item, i) {
-          return (
-            <div
-              key={i}
-              class="landing-banner-shade"
-              style={{ background: item.hex }}
-            />
-          );
-        })}
-      </div>
-    );
-  }
+  var baseHex = entry ? entry.baseHex : '#ccc';
+  var scale = entry ? entry.scale : [];
+  var hasScale = scale && scale.length > 0;
 
   return (
     <div
-      class="landing-banner-col"
+      class={'landing-banner-col' + (hovered ? ' landing-banner-col--expanded' : '')}
       onMouseEnter={function () { setHovered(true); }}
       onMouseLeave={function () { setHovered(false); }}
     >
-      <div class="landing-banner-single" style={{ background: baseHex }}>
-        <span class="landing-banner-hex">{baseHex}</span>
+      {/* Solid color layer — fades out on hover */}
+      <div class="landing-banner-solid" style={{ background: baseHex }}>
+        <span class="landing-banner-hex">{entry ? baseHex : '—'}</span>
       </div>
+      {/* Shades layer — fades in on hover */}
+      {hasScale ? (
+        <div class="landing-banner-shades">
+          {scale.map(function (item, i) {
+            return (
+              <div
+                key={i}
+                class="landing-banner-shade"
+                style={{ background: item.hex }}
+              />
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
