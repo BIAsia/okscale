@@ -28,14 +28,31 @@ function normalizeHue(hue: number): number {
   return ((hue % 360) + 360) % 360;
 }
 
-function interpolate(start: number, end: number, t: number): number {
-  return start + (end - start) * t;
+function getCenteredPhase(step: number, anchorStep: number, minStep: number, maxStep: number): number {
+  if (step === anchorStep) return 0;
+
+  if (step < anchorStep) {
+    var upSpan = Math.max(1, anchorStep - minStep);
+    return -((anchorStep - step) / upSpan);
+  }
+
+  var downSpan = Math.max(1, maxStep - anchorStep);
+  return (step - anchorStep) / downSpan;
 }
 
-function getHueOffset(mode: ShadeMode, t: number): number {
-  if (mode === 'warm') return interpolate(-15, 10, t);
-  if (mode === 'cool') return interpolate(15, -10, t);
-  if (mode === 'natural') return interpolate(-10, 15, t);
+function getHueOffset(mode: ShadeMode, centeredPhase: number): number {
+  if (mode === 'warm') {
+    return centeredPhase < 0 ? centeredPhase * 15 : centeredPhase * 10;
+  }
+
+  if (mode === 'cool') {
+    return centeredPhase < 0 ? -centeredPhase * 15 : -centeredPhase * 10;
+  }
+
+  if (mode === 'natural') {
+    return centeredPhase < 0 ? centeredPhase * 10 : centeredPhase * 15;
+  }
+
   return 0;
 }
 
@@ -58,8 +75,8 @@ export function generateShiftedScale(base: Oklch, mode: ShadeMode, anchorOptions
   var distanceDenominator = Math.max(anchorStep - minStep, maxStep - anchorStep) || 1;
 
   var generated = SCALE_STEPS.map(function (step) {
-    var t = (step - minStep) / (maxStep - minStep);
-    var hueOffset = getHueOffset(mode, t);
+    var centeredPhase = getCenteredPhase(step, anchorStep, minStep, maxStep);
+    var hueOffset = getHueOffset(mode, centeredPhase);
     var targetL = clamp01(LIGHTNESS_BY_STEP[step] + lOffset * 0.12);
     var distance = Math.abs(step - anchorStep) / distanceDenominator;
     var chromaFactor = 1 - distance * 0.32;
