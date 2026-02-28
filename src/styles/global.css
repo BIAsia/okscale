@@ -41,6 +41,7 @@ body {
   --ok-primary-900: #141414;
   --ok-primary-950: #0a0a0a;
   --ok-accent: var(--ok-primary-500);
+  --ok-accent-fg: #000;
   --ok-accent-light: var(--ok-primary-200);
   --ok-accent-dark: var(--ok-primary-800);
 
@@ -367,6 +368,7 @@ body {
 
 .btn-primary:hover {
   background: var(--ok-accent);
+  color: var(--ok-accent-fg, #000);
 }
 
 .btn-secondary {
@@ -385,7 +387,7 @@ body {
 
 .btn-accent {
   background: var(--ok-accent);
-  color: #fff;
+  color: var(--ok-accent-fg, #000);
   border-radius: 100px;
   padding: 12px 24px;
   font-size: 14px;
@@ -1257,7 +1259,7 @@ a:focus-visible {
 
 .landing-btn-accent {
   background: var(--ok-accent);
-  color: #000;
+  color: var(--ok-accent-fg, #000);
 }
 
 .landing-icon-btn {

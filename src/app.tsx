@@ -3,6 +3,7 @@ import { DocsPage } from './pages/DocsPage';
 import { LandingPage } from './pages/LandingPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { parseColorInput, rgbToHex, rgbToOklch } from './lib/color';
+import { contrastRatio } from './lib/contrast';
 import { suggestGradients } from './lib/gradient';
 import { generateHarmony, type HarmonyType } from './lib/harmony';
 import { generateFullPalette } from './lib/palette';
@@ -20,7 +21,16 @@ function applyTokens(scale: ScaleColor[], accentHex?: string) {
     root.style.setProperty('--ok-primary-' + item.step, item.hex);
   });
   var fallback = scale[Math.min(5, scale.length - 1)];
-  root.style.setProperty('--ok-accent', accentHex || (fallback ? fallback.hex : '#000'));
+  var accent = accentHex || (fallback ? fallback.hex : '#000');
+  root.style.setProperty('--ok-accent', accent);
+
+  // Pick foreground for accent: choose lightest or darkest shade by contrast
+  var lightest = scale[0];
+  var darkest = scale[scale.length - 1];
+  var lightRatio = lightest ? contrastRatio(lightest.hex, accent) : 0;
+  var darkRatio = darkest ? contrastRatio(darkest.hex, accent) : 0;
+  var fg = darkRatio >= lightRatio ? (darkest ? darkest.hex : '#000') : (lightest ? lightest.hex : '#fff');
+  root.style.setProperty('--ok-accent-fg', fg);
 }
 
 function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
