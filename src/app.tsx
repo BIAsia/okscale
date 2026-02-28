@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { DocsPage } from './pages/DocsPage';
 import { LandingPage } from './pages/LandingPage';
 import { WorkspacePage } from './pages/WorkspacePage';
-import { parseColorInput, rgbToOklch } from './lib/color';
+import { parseColorInput, rgbToHex, rgbToOklch } from './lib/color';
 import { suggestGradients } from './lib/gradient';
 import { generateHarmony, type HarmonyType } from './lib/harmony';
 import { generateFullPalette } from './lib/palette';
@@ -11,6 +11,7 @@ import type { ShadeMode } from './lib/shades';
 import type { ScaleColor } from './lib/scale';
 
 var WORKSPACE_STATE_STORAGE_KEY = 'okscale.workspace.v1';
+var RECENT_COLORS_STORAGE_KEY = 'okscale.recent-colors.v1';
 
 function applyTokens(scale: ScaleColor[]) {
   if (!scale.length) return;
@@ -52,6 +53,22 @@ function loadWorkspaceStateFromStorage(): WorkspaceShareState | null {
   }
 }
 
+function loadRecentColorsFromStorage(): string[] {
+  try {
+    var raw = window.localStorage.getItem(RECENT_COLORS_STORAGE_KEY);
+    if (!raw) return [];
+    var parsed = JSON.parse(raw) as string[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(function (value) {
+        return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
+      })
+      .slice(0, 8);
+  } catch (_err) {
+    return [];
+  }
+}
+
 function resolveInitialWorkspaceState(): WorkspaceShareState {
   var fromUrl = decodeWorkspaceState(window.location.search);
   if (fromUrl) return fromUrl;
@@ -63,6 +80,10 @@ function resolveInitialWorkspaceState(): WorkspaceShareState {
 export function App() {
   var initialWorkspace = useMemo(function () {
     return resolveInitialWorkspaceState();
+  }, []);
+
+  var initialRecentColors = useMemo(function () {
+    return loadRecentColorsFromStorage();
   }, []);
 
   var routeState = useState<'/' | '/app' | '/docs'>(normalizePathname(window.location.pathname));
@@ -80,6 +101,10 @@ export function App() {
   var harmonyTypeState = useState<HarmonyType>(initialWorkspace.harmonyType);
   var harmonyType = harmonyTypeState[0];
   var setHarmonyType = harmonyTypeState[1];
+
+  var recentColorsState = useState<string[]>(initialRecentColors);
+  var recentColors = recentColorsState[0];
+  var setRecentColors = recentColorsState[1];
 
   var parsedRgb = useMemo(function () {
     return parseColorInput(colorInput);
@@ -103,6 +128,21 @@ export function App() {
     if (!primaryOklch) return [];
     return suggestGradients(primaryOklch);
   }, [primaryOklch]);
+
+  useEffect(
+    function () {
+      if (!parsedRgb) return;
+      var normalizedHex = rgbToHex(parsedRgb);
+      setRecentColors(function (previous) {
+        if (previous.length && previous[0] === normalizedHex) return previous;
+        var deduped = previous.filter(function (value) {
+          return value !== normalizedHex;
+        });
+        return [normalizedHex].concat(deduped).slice(0, 8);
+      });
+    },
+    [parsedRgb]
+  );
 
   useEffect(
     function () {
@@ -150,6 +190,17 @@ export function App() {
       }
     },
     [colorInput, shadeMode, harmonyType]
+  );
+
+  useEffect(
+    function () {
+      try {
+        window.localStorage.setItem(RECENT_COLORS_STORAGE_KEY, JSON.stringify(recentColors));
+      } catch (_err) {
+        // no-op
+      }
+    },
+    [recentColors]
   );
 
   useEffect(
@@ -232,6 +283,8 @@ export function App() {
         onColorChange={setColorInput}
         onShadeModeChange={setShadeMode}
         onHarmonyTypeChange={setHarmonyType}
+        recentColors={recentColors}
+        onSelectRecentColor={setColorInput}
       />
     );
   }

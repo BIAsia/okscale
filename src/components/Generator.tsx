@@ -18,6 +18,8 @@ type GeneratorProps = {
   onColorChange: (value: string) => void;
   onShadeModeChange: (mode: ShadeMode) => void;
   onHarmonyTypeChange: (type: HarmonyType) => void;
+  recentColors: string[];
+  onSelectRecentColor: (value: string) => void;
 };
 
 function formatHarmonyLabel(label: string): string {
@@ -79,6 +81,32 @@ export function Generator(props: GeneratorProps) {
             />
             <div class="color-preview-swatch" style={{ backgroundColor: previewHex }} title={previewHex} />
           </div>
+
+          {props.recentColors.length ? (
+            <div class="recent-color-wrap">
+              <p class="text-code text-small text-muted">Recent colors</p>
+              <div class="recent-color-row">
+                {props.recentColors.map(function (hex) {
+                  var active = props.colorInput.toLowerCase() === hex.toLowerCase();
+                  return (
+                    <button
+                      type="button"
+                      key={hex}
+                      class={active ? 'recent-color-chip active' : 'recent-color-chip'}
+                      onClick={function () {
+                        props.onSelectRecentColor(hex);
+                      }}
+                      title={hex}
+                    >
+                      <span class="recent-color-dot" style={{ backgroundColor: hex }} />
+                      <span class="text-code text-small">{hex}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           <p class="text-code text-muted">{formatOklch(props.primaryOklch)}</p>
           {props.colorError ? (
             <p id="generator-color-error" class="text-body" style={{ color: '#b91c1c' }}>
