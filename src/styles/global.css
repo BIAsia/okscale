@@ -531,6 +531,60 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+.image-theme-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.image-theme-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.image-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #000;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fff;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.image-upload-btn[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.image-upload-input {
+  display: none;
+}
+
+.image-theme-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.image-theme-chip {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
 .compact-compare-card {
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
@@ -599,6 +653,10 @@ body {
   height: 24px;
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.palette-grid {
+  grid-template-columns: 1fr;
 }
 
 .palette-section {

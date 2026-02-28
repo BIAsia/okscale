@@ -3,6 +3,7 @@ import { HARMONY_TYPES, type HarmonyResult, type HarmonyType } from '../lib/harm
 import type { GradientResult } from '../lib/gradient';
 import type { FullPalette } from '../lib/palette';
 import { SHADE_MODES, type ShadeMode } from '../lib/shades';
+import { extractThemeFromImageFile } from '../lib/image-theme';
 import type { Oklch } from '../lib/color';
 import { buildUsageMatrix, contrastRatio, ratioGrade } from '../lib/contrast';
 
@@ -46,10 +47,49 @@ export function Generator(props: GeneratorProps) {
   var showAdvanced = advancedState[0];
   var setShowAdvanced = advancedState[1];
 
+  var imageThemeState = useState<string[]>([]);
+  var imageTheme = imageThemeState[0];
+  var setImageTheme = imageThemeState[1];
+
+  var imageExtractingState = useState(false);
+  var imageExtracting = imageExtractingState[0];
+  var setImageExtracting = imageExtractingState[1];
+
+  var imageStatusState = useState('');
+  var imageStatus = imageStatusState[0];
+  var setImageStatus = imageStatusState[1];
+
   var usageRows = useMemo(function () {
     if (!props.palette) return [];
     return buildUsageMatrix(props.palette.primary.scale);
   }, [props.palette]);
+
+  async function onImageSelected(event: Event) {
+    var input = event.currentTarget as HTMLInputElement;
+    var file = input.files && input.files[0];
+    if (!file) return;
+
+    setImageExtracting(true);
+    setImageStatus('Extracting theme...');
+
+    try {
+      var colors = await extractThemeFromImageFile(file, 6);
+      if (!colors.length) {
+        setImageStatus('No usable colors found in image.');
+        setImageTheme([]);
+        return;
+      }
+      setImageTheme(colors);
+      props.onColorChange(colors[0]);
+      setImageStatus('Extracted ' + colors.length + ' colors. Applied first color.');
+    } catch (_err) {
+      setImageStatus('Failed to extract theme from image.');
+      setImageTheme([]);
+    } finally {
+      setImageExtracting(false);
+      input.value = '';
+    }
+  }
 
   return (
     <section class="section workspace-generator">
@@ -106,6 +146,43 @@ export function Generator(props: GeneratorProps) {
               </div>
             </div>
           ) : null}
+
+          <div class="image-theme-wrap">
+            <div class="image-theme-head">
+              <p class="text-code text-small text-muted">Image theme extractor</p>
+              <label class="image-upload-btn" aria-disabled={imageExtracting ? 'true' : 'false'}>
+                {imageExtracting ? 'Extracting...' : 'Upload image'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onImageSelected}
+                  disabled={imageExtracting}
+                  class="image-upload-input"
+                />
+              </label>
+            </div>
+            {imageTheme.length ? (
+              <div class="image-theme-row">
+                {imageTheme.map(function (hex) {
+                  return (
+                    <button
+                      key={hex}
+                      type="button"
+                      class="image-theme-chip"
+                      onClick={function () {
+                        props.onColorChange(hex);
+                      }}
+                      title={'Apply ' + hex}
+                    >
+                      <span class="recent-color-dot" style={{ backgroundColor: hex }} />
+                      <span class="text-code text-small">{hex}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            {imageStatus ? <p class="text-code text-small text-muted">{imageStatus}</p> : null}
+          </div>
 
           <p class="text-code text-muted">{formatOklch(props.primaryOklch)}</p>
           {props.colorError ? (
@@ -206,7 +283,7 @@ export function Generator(props: GeneratorProps) {
         </div>
 
         {props.palette ? (
-          <div class="grid-2 gap-md" id="palette-preview">
+          <div class="grid-2 gap-md palette-grid" id="palette-preview">
             {[
               props.palette.primary,
               props.palette.secondary,
