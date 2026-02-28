@@ -13,16 +13,14 @@ import { nearestScaleStepForLightness, type AnchorBehavior, type ScaleColor } fr
 var WORKSPACE_STATE_STORAGE_KEY = 'okscale.workspace.v1';
 var RECENT_COLORS_STORAGE_KEY = 'okscale.recent-colors.v1';
 
-function applyTokens(scale: ScaleColor[]) {
+function applyTokens(scale: ScaleColor[], accentHex?: string) {
   if (!scale.length) return;
   var root = document.documentElement;
   scale.forEach(function (item) {
     root.style.setProperty('--ok-primary-' + item.step, item.hex);
   });
-  var accent = scale[Math.min(5, scale.length - 1)];
-  if (accent) {
-    root.style.setProperty('--ok-accent', accent.hex);
-  }
+  var fallback = scale[Math.min(5, scale.length - 1)];
+  root.style.setProperty('--ok-accent', accentHex || (fallback ? fallback.hex : '#000'));
 }
 
 function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
@@ -167,14 +165,26 @@ export function App() {
     function () {
       if (!palette || !palette.primary || !palette.primary.scale) return;
       var primaryScale = palette.primary.scale;
+      var accentHex = undefined as string | undefined;
+      if (anchorBehavior === 'preserve-input' && parsedRgb) {
+        accentHex = rgbToHex(parsedRgb);
+      } else {
+        // find the anchor step color in the scale
+        for (var i = 0; i < primaryScale.length; i++) {
+          if (primaryScale[i].step === anchorStep) {
+            accentHex = primaryScale[i].hex;
+            break;
+          }
+        }
+      }
       var frame = window.requestAnimationFrame(function () {
-        applyTokens(primaryScale);
+        applyTokens(primaryScale, accentHex);
       });
       return function () {
         window.cancelAnimationFrame(frame);
       };
     },
-    [palette]
+    [palette, anchorBehavior, anchorStep, parsedRgb]
   );
 
   useEffect(function () {
