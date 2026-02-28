@@ -26,9 +26,13 @@ export type PrimaryAnchorSettings = {
   anchorStep?: number;
 };
 
+function mappedHex(base: Oklch): string {
+  return rgbToHex(gamutMapOklch(base));
+}
+
 function createEntry(role: PaletteRole, label: string, base: Oklch, scale: ScaleColor[]): PaletteEntry {
   var mappedBase = rgbToOklch(gamutMapOklch(base));
-  var baseHex = rgbToHex(gamutMapOklch(mappedBase));
+  var baseHex = mappedHex(mappedBase);
   return {
     role: role,
     label: label,
@@ -55,25 +59,43 @@ export function generateFullPalette(
   );
 
   var anchorStep = primaryAnchor?.anchorStep || nearestScaleStepForLightness(primaryMapped.l);
+
+  var primaryAnchorHex = primaryAnchor
+    ? primaryAnchor.behavior === 'preserve-input'
+      ? primaryAnchor.anchorHex
+      : mappedHex(primaryMapped)
+    : undefined;
+
   var primaryAnchorOptions = primaryAnchor
     ? {
         behavior: primaryAnchor.behavior,
         anchorStep: anchorStep,
-        anchorHex: primaryAnchor.anchorHex
+        anchorHex: primaryAnchorHex
       }
     : undefined;
 
-  var generatedAnchorOptions = primaryAnchor
-    ? {
-        behavior: 'auto-gamut' as const,
-        anchorStep: anchorStep
-      }
-    : undefined;
+  var secondaryAnchorOptions = {
+    behavior: 'auto-gamut' as const,
+    anchorStep: anchorStep,
+    anchorHex: mappedHex(complementary)
+  };
+
+  var accentAnchorOptions = {
+    behavior: 'auto-gamut' as const,
+    anchorStep: anchorStep,
+    anchorHex: mappedHex(analogous)
+  };
+
+  var neutralAnchorOptions = {
+    behavior: 'auto-gamut' as const,
+    anchorStep: anchorStep,
+    anchorHex: mappedHex(neutralBase)
+  };
 
   var primaryScale = generateShiftedScale(primaryMapped, shadeMode, primaryAnchorOptions);
-  var secondaryScale = generateShiftedScale(complementary, shadeMode, generatedAnchorOptions);
-  var accentScale = generateShiftedScale(analogous, shadeMode, generatedAnchorOptions);
-  var neutralScale = generateScale(neutralBase, generatedAnchorOptions);
+  var secondaryScale = generateShiftedScale(complementary, shadeMode, secondaryAnchorOptions);
+  var accentScale = generateShiftedScale(analogous, shadeMode, accentAnchorOptions);
+  var neutralScale = generateScale(neutralBase, neutralAnchorOptions);
 
   return {
     primary: createEntry('primary', 'Primary', primaryMapped, primaryScale),

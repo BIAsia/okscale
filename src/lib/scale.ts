@@ -90,7 +90,7 @@ export function nearestScaleStepForLightness(lightness: number): number {
 }
 
 export function applyScaleAnchor(scale: ScaleColor[], options?: ScaleAnchorOptions): ScaleColor[] {
-  if (!options || options.behavior !== 'preserve-input') return scale;
+  if (!options) return scale;
   if (!options.anchorHex) return scale;
 
   var anchorStep = options.anchorStep || 500;
