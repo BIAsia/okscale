@@ -60,31 +60,39 @@ export function generateFullPalette(
 
   var anchorStep = primaryAnchor?.anchorStep || nearestScaleStepForLightness(primaryMapped.l);
 
+  var sharedBehavior = primaryAnchor ? primaryAnchor.behavior : 'auto-gamut';
+
   var primaryAnchorOptions = primaryAnchor
     ? {
-        behavior: primaryAnchor.behavior,
+        behavior: sharedBehavior,
         anchorStep: anchorStep,
         anchorHex: primaryAnchor.anchorHex
       }
     : undefined;
 
-  var secondaryAnchorOptions = {
-    behavior: 'preserve-input' as const,
-    anchorStep: anchorStep,
-    anchorHex: mappedHex(complementary)
-  };
+  var secondaryAnchorOptions = primaryAnchor
+    ? {
+        behavior: sharedBehavior,
+        anchorStep: anchorStep,
+        anchorHex: mappedHex(complementary)
+      }
+    : undefined;
 
-  var accentAnchorOptions = {
-    behavior: 'preserve-input' as const,
-    anchorStep: anchorStep,
-    anchorHex: mappedHex(analogous)
-  };
+  var accentAnchorOptions = primaryAnchor
+    ? {
+        behavior: sharedBehavior,
+        anchorStep: anchorStep,
+        anchorHex: mappedHex(analogous)
+      }
+    : undefined;
 
-  var neutralAnchorOptions = {
-    behavior: 'preserve-input' as const,
-    anchorStep: anchorStep,
-    anchorHex: mappedHex(neutralBase)
-  };
+  var neutralAnchorOptions = primaryAnchor
+    ? {
+        behavior: sharedBehavior,
+        anchorStep: anchorStep,
+        anchorHex: mappedHex(neutralBase)
+      }
+    : undefined;
 
   var primaryScale = generateShiftedScale(primaryMapped, shadeMode, primaryAnchorOptions);
   var secondaryScale = generateShiftedScale(complementary, shadeMode, secondaryAnchorOptions);
