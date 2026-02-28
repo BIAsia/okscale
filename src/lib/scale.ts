@@ -1,4 +1,4 @@
-import { clamp01, gamutMapOklch, rgbToHex, rgbToOklch, oklchToRgb, type Oklch } from './color';
+import { clamp01, gamutMapOklch, hexToRgb, rgbToHex, rgbToOklch, oklchToRgb, type Oklch } from './color';
 
 export var SCALE_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
@@ -20,6 +20,14 @@ export type ScaleColor = {
   step: number;
   lch: Oklch;
   hex: string;
+};
+
+export type AnchorBehavior = 'auto-gamut' | 'preserve-input';
+
+export type ScaleAnchorOptions = {
+  behavior?: AnchorBehavior;
+  anchorStep?: number;
+  anchorHex?: string;
 };
 
 function rgbToHsl(rgb: { r: number; g: number; b: number }): { h: number; s: number; l: number } {
@@ -64,14 +72,51 @@ function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: n
   return { r: base.r + m, g: base.g + m, b: base.b + m };
 }
 
-export function generateScale(base: Oklch): ScaleColor[] {
+export function nearestScaleStepForLightness(lightness: number): number {
+  var l = clamp01(lightness);
+  var bestStep = SCALE_STEPS[0];
+  var bestDistance = Math.abs(LIGHTNESS_BY_STEP[bestStep] - l);
+
+  for (var i = 1; i < SCALE_STEPS.length; i++) {
+    var step = SCALE_STEPS[i];
+    var distance = Math.abs(LIGHTNESS_BY_STEP[step] - l);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestStep = step;
+    }
+  }
+
+  return bestStep;
+}
+
+export function applyScaleAnchor(scale: ScaleColor[], options?: ScaleAnchorOptions): ScaleColor[] {
+  if (!options || options.behavior !== 'preserve-input') return scale;
+  if (!options.anchorHex) return scale;
+
+  var anchorStep = options.anchorStep || 500;
+  var anchorRgb = hexToRgb(options.anchorHex);
+  if (!anchorRgb) return scale;
+
+  var anchorRgbSafe = anchorRgb;
+  var anchorHex = rgbToHex(anchorRgbSafe);
+  return scale.map(function (item) {
+    if (item.step !== anchorStep) return item;
+    return {
+      step: item.step,
+      hex: anchorHex,
+      lch: rgbToOklch(anchorRgbSafe)
+    };
+  });
+}
+
+export function generateScale(base: Oklch, anchorOptions?: ScaleAnchorOptions): ScaleColor[] {
   var hue = ((base.h % 360) + 360) % 360;
   var safeBaseC = Math.max(0, base.c);
   var baseL = clamp01(base.l);
   var baseTargetL = LIGHTNESS_BY_STEP[500];
   var lOffset = baseL - baseTargetL;
 
-  return SCALE_STEPS.map(function (step) {
+  var generated = SCALE_STEPS.map(function (step) {
     var targetL = clamp01(LIGHTNESS_BY_STEP[step] + lOffset * 0.12);
     var distance = Math.abs(step - 500) / 450;
     var chromaFactor = 1 - distance * 0.32;
@@ -93,6 +138,8 @@ export function generateScale(base: Oklch): ScaleColor[] {
       hex: rgbToHex(rgb)
     };
   });
+
+  return applyScaleAnchor(generated, anchorOptions);
 }
 
 export function generateHslScale(base: Oklch): ScaleColor[] {

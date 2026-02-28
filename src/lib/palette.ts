@@ -1,5 +1,5 @@
 import { gamutMapOklch, rgbToHex, rgbToOklch, type Oklch } from './color';
-import { type ScaleColor, generateScale } from './scale';
+import { type AnchorBehavior, nearestScaleStepForLightness, type ScaleColor, generateScale } from './scale';
 import { generateHarmony } from './harmony';
 import { generateShiftedScale, type ShadeMode } from './shades';
 
@@ -20,6 +20,12 @@ export type FullPalette = {
   neutral: PaletteEntry;
 };
 
+export type PrimaryAnchorSettings = {
+  behavior: AnchorBehavior;
+  anchorHex: string;
+  anchorStep?: number;
+};
+
 function createEntry(role: PaletteRole, label: string, base: Oklch, scale: ScaleColor[]): PaletteEntry {
   var mappedBase = rgbToOklch(gamutMapOklch(base));
   var baseHex = rgbToHex(gamutMapOklch(mappedBase));
@@ -32,7 +38,11 @@ function createEntry(role: PaletteRole, label: string, base: Oklch, scale: Scale
   };
 }
 
-export function generateFullPalette(primaryBase: Oklch, shadeMode: ShadeMode): FullPalette {
+export function generateFullPalette(
+  primaryBase: Oklch,
+  shadeMode: ShadeMode,
+  primaryAnchor?: PrimaryAnchorSettings
+): FullPalette {
   var primaryMapped = rgbToOklch(gamutMapOklch(primaryBase));
   var complementary = generateHarmony(primaryMapped, 'complementary').colors[1].lch;
   var analogous = generateHarmony(primaryMapped, 'analogous').colors[2].lch;
@@ -44,7 +54,16 @@ export function generateFullPalette(primaryBase: Oklch, shadeMode: ShadeMode): F
     })
   );
 
-  var primaryScale = generateShiftedScale(primaryMapped, shadeMode);
+  var anchorStep = primaryAnchor?.anchorStep || nearestScaleStepForLightness(primaryMapped.l);
+  var anchorOptions = primaryAnchor
+    ? {
+        behavior: primaryAnchor.behavior,
+        anchorStep: anchorStep,
+        anchorHex: primaryAnchor.anchorHex
+      }
+    : undefined;
+
+  var primaryScale = generateShiftedScale(primaryMapped, shadeMode, anchorOptions);
   var secondaryScale = generateShiftedScale(complementary, shadeMode);
   var accentScale = generateShiftedScale(analogous, shadeMode);
   var neutralScale = generateScale(neutralBase);

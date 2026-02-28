@@ -1,10 +1,12 @@
 import { HARMONY_TYPES, type HarmonyType } from './harmony';
+import { type AnchorBehavior } from './scale';
 import { SHADE_MODES, type ShadeMode } from './shades';
 
 export type WorkspaceShareState = {
   colorInput: string;
   shadeMode: ShadeMode;
   harmonyType: HarmonyType;
+  anchorBehavior: AnchorBehavior;
 };
 
 var VALID_SHADE_MODES = SHADE_MODES.map(function (mode) {
@@ -15,6 +17,8 @@ var VALID_HARMONY_TYPES = HARMONY_TYPES.map(function (mode) {
   return mode.id;
 });
 
+var VALID_ANCHOR_BEHAVIORS: AnchorBehavior[] = ['auto-gamut', 'preserve-input'];
+
 function isShadeMode(value: string): value is ShadeMode {
   return VALID_SHADE_MODES.indexOf(value as ShadeMode) >= 0;
 }
@@ -23,20 +27,27 @@ function isHarmonyType(value: string): value is HarmonyType {
   return VALID_HARMONY_TYPES.indexOf(value as HarmonyType) >= 0;
 }
 
+function isAnchorBehavior(value: string): value is AnchorBehavior {
+  return VALID_ANCHOR_BEHAVIORS.indexOf(value as AnchorBehavior) >= 0;
+}
+
 export function decodeWorkspaceState(search: string): WorkspaceShareState | null {
   var params = new URLSearchParams(search);
   var colorInput = params.get('color');
   var shadeMode = params.get('shade');
   var harmonyType = params.get('harmony');
+  var anchorBehavior = params.get('anchor') || 'preserve-input';
 
   if (!colorInput || !shadeMode || !harmonyType) return null;
   if (!isShadeMode(shadeMode)) return null;
   if (!isHarmonyType(harmonyType)) return null;
+  if (!isAnchorBehavior(anchorBehavior)) return null;
 
   return {
     colorInput: colorInput,
     shadeMode: shadeMode,
-    harmonyType: harmonyType
+    harmonyType: harmonyType,
+    anchorBehavior: anchorBehavior
   };
 }
 
@@ -45,6 +56,7 @@ export function encodeWorkspaceState(state: WorkspaceShareState): string {
   params.set('color', state.colorInput);
   params.set('shade', state.shadeMode);
   params.set('harmony', state.harmonyType);
+  params.set('anchor', state.anchorBehavior);
   return params.toString();
 }
 

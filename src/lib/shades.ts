@@ -1,5 +1,5 @@
 import { clamp01, gamutMapOklch, rgbToHex, rgbToOklch, type Oklch } from './color';
-import { type ScaleColor, SCALE_STEPS, generateScale } from './scale';
+import { applyScaleAnchor, type ScaleAnchorOptions, type ScaleColor, SCALE_STEPS, generateScale } from './scale';
 
 export type ShadeMode = 'none' | 'warm' | 'cool' | 'natural';
 
@@ -39,9 +39,9 @@ function getHueOffset(mode: ShadeMode, t: number): number {
   return 0;
 }
 
-export function generateShiftedScale(base: Oklch, mode: ShadeMode): ScaleColor[] {
+export function generateShiftedScale(base: Oklch, mode: ShadeMode, anchorOptions?: ScaleAnchorOptions): ScaleColor[] {
   if (mode === 'none') {
-    return generateScale(base);
+    return generateScale(base, anchorOptions);
   }
 
   var baseHue = normalizeHue(base.h);
@@ -52,7 +52,7 @@ export function generateShiftedScale(base: Oklch, mode: ShadeMode): ScaleColor[]
   var minStep = SCALE_STEPS[0];
   var maxStep = SCALE_STEPS[SCALE_STEPS.length - 1];
 
-  return SCALE_STEPS.map(function (step) {
+  var generated = SCALE_STEPS.map(function (step) {
     var t = (step - minStep) / (maxStep - minStep);
     var hueOffset = getHueOffset(mode, t);
     var targetL = clamp01(LIGHTNESS_BY_STEP[step] + lOffset * 0.12);
@@ -74,4 +74,6 @@ export function generateShiftedScale(base: Oklch, mode: ShadeMode): ScaleColor[]
       hex: rgbToHex(rgb)
     };
   });
+
+  return applyScaleAnchor(generated, anchorOptions);
 }

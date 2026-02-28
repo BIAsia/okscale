@@ -85,7 +85,8 @@ export function WorkspacePage(props: WorkspacePageProps) {
       var link = buildWorkspaceShareUrl({
         colorInput: props.colorInput,
         shadeMode: props.shadeMode,
-        harmonyType: props.harmonyType
+        harmonyType: props.harmonyType,
+        anchorBehavior: props.anchorBehavior
       });
       await navigator.clipboard.writeText(link);
       setShareCopied(true);
@@ -177,6 +178,9 @@ export function WorkspacePage(props: WorkspacePageProps) {
               onColorChange={props.onColorChange}
               onShadeModeChange={props.onShadeModeChange}
               onHarmonyTypeChange={props.onHarmonyTypeChange}
+              anchorBehavior={props.anchorBehavior}
+              anchorStep={props.anchorStep}
+              onAnchorBehaviorChange={props.onAnchorBehaviorChange}
               recentColors={props.recentColors}
               onSelectRecentColor={props.onSelectRecentColor}
             />
