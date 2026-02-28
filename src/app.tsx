@@ -24,13 +24,17 @@ function applyTokens(scale: ScaleColor[], accentHex?: string) {
   var accent = accentHex || (fallback ? fallback.hex : '#000');
   root.style.setProperty('--ok-accent', accent);
 
-  // Pick foreground for accent: choose lightest or darkest shade by contrast
-  var lightest = scale[0];
-  var darkest = scale[scale.length - 1];
-  var lightRatio = lightest ? contrastRatio(lightest.hex, accent) : 0;
-  var darkRatio = darkest ? contrastRatio(darkest.hex, accent) : 0;
-  var fg = darkRatio >= lightRatio ? (darkest ? darkest.hex : '#000') : (lightest ? lightest.hex : '#fff');
-  root.style.setProperty('--ok-accent-fg', fg);
+  // Pick foreground for accent: find the scale step with highest contrast
+  var bestFg = '#000';
+  var bestRatio = 0;
+  for (var i = 0; i < scale.length; i++) {
+    var ratio = contrastRatio(scale[i].hex, accent);
+    if (ratio > bestRatio) {
+      bestRatio = ratio;
+      bestFg = scale[i].hex;
+    }
+  }
+  root.style.setProperty('--ok-accent-fg', bestFg);
 }
 
 function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
