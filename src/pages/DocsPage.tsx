@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'preact/hooks';
 import { Footer } from '../components/Footer';
 import { Nav } from '../components/Nav';
 
@@ -5,26 +6,21 @@ type DocsPageProps = {
   onNavigate: (to: string) => void;
 };
 
-export function DocsPage(props: DocsPageProps) {
-  return (
-    <div class="page-wrap docs-page">
-      <Nav mode="docs" onNavigate={props.onNavigate} />
+type DocSection = {
+  id: string;
+  title: string;
+  desc: string;
+  tags: string[];
+  code: string;
+};
 
-      <section class="section docs-hero">
-        <div class="section-inner flex flex-col gap-md">
-          <h1 class="text-section">Docs</h1>
-          <p class="text-body text-muted">
-            Minimal integration snippets for shipping OKScale tokens in production stacks.
-          </p>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="section-inner grid-2 gap-md docs-grid">
-          <article class="card flex flex-col gap-sm">
-            <h2 class="text-body-lg">CSS Variables</h2>
-            <p class="text-body text-muted">Paste generated variables and consume with semantic aliases.</p>
-            <pre class="code-block"><code>{`:root {
+var DOC_SECTIONS: DocSection[] = [
+  {
+    id: 'css-variables',
+    title: 'CSS Variables',
+    desc: 'Paste generated variables and consume with semantic aliases.',
+    tags: ['css', 'variables', 'tokens', 'styles'],
+    code: `:root {
   --primary-50: #f3f7ff;
   --primary-500: #3b82f6;
   --primary-900: #0f2140;
@@ -33,13 +29,14 @@ export function DocsPage(props: DocsPageProps) {
 .button-primary {
   background: var(--primary-600);
   color: var(--primary-50);
-}`}</code></pre>
-          </article>
-
-          <article class="card flex flex-col gap-sm">
-            <h2 class="text-body-lg">Tailwind</h2>
-            <p class="text-body text-muted">Extend your theme colors with numeric token scales.</p>
-            <pre class="code-block"><code>{`export default {
+}`
+  },
+  {
+    id: 'tailwind',
+    title: 'Tailwind',
+    desc: 'Extend your theme colors with numeric or semantic token scales.',
+    tags: ['tailwind', 'utility', 'config'],
+    code: `export default {
   theme: {
     extend: {
       colors: {
@@ -51,24 +48,26 @@ export function DocsPage(props: DocsPageProps) {
       }
     }
   }
-};`}</code></pre>
-          </article>
-
-          <article class="card flex flex-col gap-sm">
-            <h2 class="text-body-lg">Design Tokens JSON</h2>
-            <p class="text-body text-muted">Use W3C token shape in build pipelines and design tooling.</p>
-            <pre class="code-block"><code>{`{
+};`
+  },
+  {
+    id: 'design-tokens',
+    title: 'Design Tokens JSON',
+    desc: 'Use W3C token shape in build pipelines and design tooling.',
+    tags: ['json', 'w3c', 'tokens', 'pipeline'],
+    code: `{
   "$schema": "https://tr.designtokens.org/format/",
   "primary": {
     "500": { "value": "#3b82f6", "type": "color" }
   }
-}`}</code></pre>
-          </article>
-
-          <article class="card flex flex-col gap-sm">
-            <h2 class="text-body-lg">Figma Variables</h2>
-            <p class="text-body text-muted">Import JSON output into your Figma variable collection workflow.</p>
-            <pre class="code-block"><code>{`{
+}`
+  },
+  {
+    id: 'figma-variables',
+    title: 'Figma Variables',
+    desc: 'Import JSON output into your Figma variable collection workflow.',
+    tags: ['figma', 'variables', 'design'],
+    code: `{
   "collections": [
     {
       "name": "OKScale",
@@ -82,8 +81,98 @@ export function DocsPage(props: DocsPageProps) {
       ]
     }
   ]
-}`}</code></pre>
-          </article>
+}`
+  }
+];
+
+function includesQuery(section: DocSection, query: string): boolean {
+  if (!query) return true;
+  var normalized = query.toLowerCase();
+  if (section.title.toLowerCase().indexOf(normalized) >= 0) return true;
+  if (section.desc.toLowerCase().indexOf(normalized) >= 0) return true;
+  return section.tags.some(function (tag) {
+    return tag.indexOf(normalized) >= 0;
+  });
+}
+
+export function DocsPage(props: DocsPageProps) {
+  var searchState = useState('');
+  var search = searchState[0];
+  var setSearch = searchState[1];
+
+  var visibleSections = useMemo(function () {
+    return DOC_SECTIONS.filter(function (section) {
+      return includesQuery(section, search);
+    });
+  }, [search]);
+
+  return (
+    <div class="page-wrap docs-page">
+      <Nav mode="docs" onNavigate={props.onNavigate} />
+
+      <section class="section docs-hero">
+        <div class="section-inner flex flex-col gap-md">
+          <h1 class="text-section">Docs</h1>
+          <p class="text-body text-muted">
+            Searchable integration snippets for shipping OKScale tokens in production stacks.
+          </p>
+          <div class="docs-search-row">
+            <input
+              class="text-code docs-search-input"
+              value={search}
+              onInput={function (event) {
+                setSearch((event.currentTarget as HTMLInputElement).value);
+              }}
+              placeholder="Search docs: tailwind, figma, css, tokens..."
+              spellcheck={false}
+            />
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onClick={function () {
+                setSearch('');
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section docs-layout-section">
+        <div class="section-inner docs-layout">
+          <aside class="card docs-nav-card">
+            <h2 class="text-body-lg">Navigation</h2>
+            <p class="text-body text-muted">Jump to matching integration blocks.</p>
+            <div class="docs-nav-list">
+              {visibleSections.map(function (section) {
+                return (
+                  <a key={section.id} href={'#' + section.id} class="docs-nav-link text-code">
+                    {section.title}
+                  </a>
+                );
+              })}
+            </div>
+          </aside>
+
+          <div class="docs-content-grid">
+            {visibleSections.length ? (
+              visibleSections.map(function (section) {
+                return (
+                  <article key={section.id} id={section.id} class="card flex flex-col gap-sm">
+                    <h2 class="text-body-lg">{section.title}</h2>
+                    <p class="text-body text-muted">{section.desc}</p>
+                    <pre class="code-block"><code>{section.code}</code></pre>
+                  </article>
+                );
+              })
+            ) : (
+              <article class="card flex flex-col gap-sm">
+                <h2 class="text-body-lg">No matching snippets</h2>
+                <p class="text-body text-muted">Try a broader keyword like "css", "tailwind", "tokens", or "figma".</p>
+              </article>
+            )}
+          </div>
         </div>
       </section>
 

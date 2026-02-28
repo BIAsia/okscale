@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'preact/hooks';
-import { EXPORT_FORMATS, type ExportFormat, formatFullExport } from '../lib/export';
+import {
+  EXPORT_FORMATS,
+  NAMING_PRESETS,
+  type ExportFormat,
+  type NamingPreset,
+  formatFullExport
+} from '../lib/export';
 import type { FullPalette } from '../lib/palette';
 
 type ExportPanelProps = {
@@ -14,18 +20,28 @@ function labelFor(format: ExportFormat): string {
   return 'CSS';
 }
 
-function filenameFor(format: ExportFormat): string {
-  if (format === 'tailwind') return 'okscale-tailwind.config.ts';
-  if (format === 'tokens') return 'okscale-tokens.json';
-  if (format === 'figma') return 'okscale-figma-variables.json';
-  if (format === 'scss') return 'okscale-palette.scss';
-  return 'okscale-palette.css';
+function namingLabel(preset: NamingPreset): string {
+  if (preset === 'semantic') return 'Semantic';
+  return 'Numeric';
+}
+
+function filenameFor(format: ExportFormat, namingPreset: NamingPreset): string {
+  var suffix = namingPreset === 'semantic' ? '-semantic' : '-numeric';
+  if (format === 'tailwind') return 'okscale-tailwind.config' + suffix + '.ts';
+  if (format === 'tokens') return 'okscale-tokens' + suffix + '.json';
+  if (format === 'figma') return 'okscale-figma-variables' + suffix + '.json';
+  if (format === 'scss') return 'okscale-palette' + suffix + '.scss';
+  return 'okscale-palette' + suffix + '.css';
 }
 
 export function ExportPanel(props: ExportPanelProps) {
   var formatState = useState<ExportFormat>('css');
   var activeFormat = formatState[0];
   var setActiveFormat = formatState[1];
+
+  var namingState = useState<NamingPreset>('numeric');
+  var namingPreset = namingState[0];
+  var setNamingPreset = namingState[1];
 
   var copiedState = useState(false);
   var copied = copiedState[0];
@@ -35,8 +51,8 @@ export function ExportPanel(props: ExportPanelProps) {
     if (!props.palette) {
       return '// Generate a palette to unlock export output.';
     }
-    return formatFullExport(activeFormat, props.palette);
-  }, [activeFormat, props.palette]);
+    return formatFullExport(activeFormat, props.palette, namingPreset);
+  }, [activeFormat, namingPreset, props.palette]);
 
   async function copyCode() {
     try {
@@ -55,7 +71,7 @@ export function ExportPanel(props: ExportPanelProps) {
     var href = URL.createObjectURL(blob);
     var link = document.createElement('a');
     link.href = href;
-    link.download = filenameFor(activeFormat);
+    link.download = filenameFor(activeFormat, namingPreset);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -82,6 +98,24 @@ export function ExportPanel(props: ExportPanelProps) {
               }}
             >
               {labelFor(format)}
+            </button>
+          );
+        })}
+      </div>
+
+      <div class="naming-tabs" role="group" aria-label="Token naming preset">
+        {NAMING_PRESETS.map(function (preset) {
+          var active = preset === namingPreset;
+          return (
+            <button
+              type="button"
+              key={preset}
+              class={active ? 'btn btn-primary tab-button' : 'btn btn-secondary tab-button'}
+              onClick={function () {
+                setNamingPreset(preset);
+              }}
+            >
+              {namingLabel(preset)}
             </button>
           );
         })}
