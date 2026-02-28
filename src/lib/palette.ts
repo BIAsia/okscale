@@ -60,34 +60,28 @@ export function generateFullPalette(
 
   var anchorStep = primaryAnchor?.anchorStep || nearestScaleStepForLightness(primaryMapped.l);
 
-  var primaryAnchorHex = primaryAnchor
-    ? primaryAnchor.behavior === 'preserve-input'
-      ? primaryAnchor.anchorHex
-      : mappedHex(primaryMapped)
-    : undefined;
-
   var primaryAnchorOptions = primaryAnchor
     ? {
         behavior: primaryAnchor.behavior,
         anchorStep: anchorStep,
-        anchorHex: primaryAnchorHex
+        anchorHex: primaryAnchor.anchorHex
       }
     : undefined;
 
   var secondaryAnchorOptions = {
-    behavior: 'auto-gamut' as const,
+    behavior: 'preserve-input' as const,
     anchorStep: anchorStep,
     anchorHex: mappedHex(complementary)
   };
 
   var accentAnchorOptions = {
-    behavior: 'auto-gamut' as const,
+    behavior: 'preserve-input' as const,
     anchorStep: anchorStep,
     anchorHex: mappedHex(analogous)
   };
 
   var neutralAnchorOptions = {
-    behavior: 'auto-gamut' as const,
+    behavior: 'preserve-input' as const,
     anchorStep: anchorStep,
     anchorHex: mappedHex(neutralBase)
   };
