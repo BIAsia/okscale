@@ -16,6 +16,8 @@ OKScale is a Preact + TypeScript app for generating perceptually uniform color s
 - Contrast usage matrix with practical text/background pair recommendations
 - Export to CSS custom properties, Tailwind config, SCSS, Design Tokens JSON, and Figma Variables JSON
 - Token naming presets: `numeric` (`50-950`) and `semantic` (`bg/base/strong/text-*`)
+- Shareable workspace links (`/app?color=...&shade=...&harmony=...`)
+- Local workspace state persistence (restores last used setup)
 - Live token binding: workspace interactions recolor site accents in real time
 
 ## Quick Start

@@ -6,6 +6,7 @@ import { Nav } from '../components/Nav';
 import { buildUsageMatrix } from '../lib/contrast';
 import { type ExportFormat, formatFullExport } from '../lib/export';
 import type { FullPalette } from '../lib/palette';
+import { buildWorkspaceShareUrl } from '../lib/share';
 
 type WorkspacePageProps = {
   onNavigate: (to: string) => void;
@@ -16,6 +17,10 @@ export function WorkspacePage(props: WorkspacePageProps) {
   var copiedState = useState(false);
   var copied = copiedState[0];
   var setCopied = copiedState[1];
+
+  var shareCopiedState = useState(false);
+  var shareCopied = shareCopiedState[0];
+  var setShareCopied = shareCopiedState[1];
 
   var quickCss = useMemo(function () {
     if (!props.palette) {
@@ -59,6 +64,23 @@ export function WorkspacePage(props: WorkspacePageProps) {
     }
   }
 
+  async function copyShareLink() {
+    try {
+      var link = buildWorkspaceShareUrl({
+        colorInput: props.colorInput,
+        shadeMode: props.shadeMode,
+        harmonyType: props.harmonyType
+      });
+      await navigator.clipboard.writeText(link);
+      setShareCopied(true);
+      window.setTimeout(function () {
+        setShareCopied(false);
+      }, 1200);
+    } catch (_err) {
+      window.alert('Failed to create share link.');
+    }
+  }
+
   return (
     <div class="page-wrap workspace-page">
       <Nav mode="workspace" onNavigate={props.onNavigate} />
@@ -70,9 +92,14 @@ export function WorkspacePage(props: WorkspacePageProps) {
               <h1 class="text-section">Generator Workspace</h1>
               <p class="text-body text-muted">Tune your palette on the left, export from the sticky panel on the right.</p>
             </div>
-            <button type="button" class="btn btn-accent" onClick={copyQuickCss}>
-              {copied ? 'CSS copied' : 'Copy CSS now'}
-            </button>
+            <div class="workspace-topbar-actions">
+              <button type="button" class="btn btn-secondary" onClick={copyShareLink}>
+                {shareCopied ? 'Link copied' : 'Share link'}
+              </button>
+              <button type="button" class="btn btn-accent" onClick={copyQuickCss}>
+                {copied ? 'CSS copied' : 'Copy CSS now'}
+              </button>
+            </div>
           </div>
 
           <article class="card trust-strip">

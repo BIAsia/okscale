@@ -6,8 +6,11 @@ import { parseColorInput, rgbToOklch } from './lib/color';
 import { suggestGradients } from './lib/gradient';
 import { generateHarmony, type HarmonyType } from './lib/harmony';
 import { generateFullPalette } from './lib/palette';
+import { decodeWorkspaceState, encodeWorkspaceState, type WorkspaceShareState } from './lib/share';
 import type { ShadeMode } from './lib/shades';
 import type { ScaleColor } from './lib/scale';
+
+var WORKSPACE_STATE_STORAGE_KEY = 'okscale.workspace.v1';
 
 function applyTokens(scale: ScaleColor[]) {
   if (!scale.length) return;
@@ -27,20 +30,54 @@ function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
   return '/';
 }
 
+function fallbackWorkspaceState(): WorkspaceShareState {
+  return {
+    colorInput: '#3b82f6',
+    shadeMode: 'natural',
+    harmonyType: 'complementary'
+  };
+}
+
+function loadWorkspaceStateFromStorage(): WorkspaceShareState | null {
+  try {
+    var raw = window.localStorage.getItem(WORKSPACE_STATE_STORAGE_KEY);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw) as WorkspaceShareState;
+    if (!parsed || typeof parsed.colorInput !== 'string') return null;
+    if (typeof parsed.shadeMode !== 'string') return null;
+    if (typeof parsed.harmonyType !== 'string') return null;
+    return parsed;
+  } catch (_err) {
+    return null;
+  }
+}
+
+function resolveInitialWorkspaceState(): WorkspaceShareState {
+  var fromUrl = decodeWorkspaceState(window.location.search);
+  if (fromUrl) return fromUrl;
+  var fromStorage = loadWorkspaceStateFromStorage();
+  if (fromStorage) return fromStorage;
+  return fallbackWorkspaceState();
+}
+
 export function App() {
+  var initialWorkspace = useMemo(function () {
+    return resolveInitialWorkspaceState();
+  }, []);
+
   var routeState = useState<'/' | '/app' | '/docs'>(normalizePathname(window.location.pathname));
   var route = routeState[0];
   var setRoute = routeState[1];
 
-  var colorInputState = useState('#3b82f6');
+  var colorInputState = useState(initialWorkspace.colorInput);
   var colorInput = colorInputState[0];
   var setColorInput = colorInputState[1];
 
-  var shadeModeState = useState<ShadeMode>('natural');
+  var shadeModeState = useState<ShadeMode>(initialWorkspace.shadeMode);
   var shadeMode = shadeModeState[0];
   var setShadeMode = shadeModeState[1];
 
-  var harmonyTypeState = useState<HarmonyType>('complementary');
+  var harmonyTypeState = useState<HarmonyType>(initialWorkspace.harmonyType);
   var harmonyType = harmonyTypeState[0];
   var setHarmonyType = harmonyTypeState[1];
 
@@ -84,6 +121,12 @@ export function App() {
   useEffect(function () {
     function onPopState() {
       setRoute(normalizePathname(window.location.pathname));
+      var fromUrl = decodeWorkspaceState(window.location.search);
+      if (fromUrl) {
+        setColorInput(fromUrl.colorInput);
+        setShadeMode(fromUrl.shadeMode);
+        setHarmonyType(fromUrl.harmonyType);
+      }
       window.scrollTo({ top: 0 });
     }
 
@@ -92,6 +135,38 @@ export function App() {
       window.removeEventListener('popstate', onPopState);
     };
   }, []);
+
+  useEffect(
+    function () {
+      var state: WorkspaceShareState = {
+        colorInput: colorInput,
+        shadeMode: shadeMode,
+        harmonyType: harmonyType
+      };
+      try {
+        window.localStorage.setItem(WORKSPACE_STATE_STORAGE_KEY, JSON.stringify(state));
+      } catch (_err) {
+        // no-op
+      }
+    },
+    [colorInput, shadeMode, harmonyType]
+  );
+
+  useEffect(
+    function () {
+      if (route !== '/app') return;
+      var params = encodeWorkspaceState({
+        colorInput: colorInput,
+        shadeMode: shadeMode,
+        harmonyType: harmonyType
+      });
+      var current = window.location.pathname + window.location.search;
+      var next = '/app?' + params;
+      if (current === next) return;
+      window.history.replaceState({}, '', next);
+    },
+    [route, colorInput, shadeMode, harmonyType]
+  );
 
   function navigate(to: string) {
     var next = normalizePathname(to);
