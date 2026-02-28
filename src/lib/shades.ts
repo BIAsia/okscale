@@ -47,16 +47,21 @@ export function generateShiftedScale(base: Oklch, mode: ShadeMode, anchorOptions
   var baseHue = normalizeHue(base.h);
   var safeBaseC = Math.max(0, base.c);
   var baseL = clamp01(base.l);
-  var baseTargetL = LIGHTNESS_BY_STEP[500];
+  var anchorStep =
+    anchorOptions && anchorOptions.anchorStep && LIGHTNESS_BY_STEP[anchorOptions.anchorStep]
+      ? anchorOptions.anchorStep
+      : 500;
+  var baseTargetL = LIGHTNESS_BY_STEP[anchorStep];
   var lOffset = baseL - baseTargetL;
   var minStep = SCALE_STEPS[0];
   var maxStep = SCALE_STEPS[SCALE_STEPS.length - 1];
+  var distanceDenominator = Math.max(anchorStep - minStep, maxStep - anchorStep) || 1;
 
   var generated = SCALE_STEPS.map(function (step) {
     var t = (step - minStep) / (maxStep - minStep);
     var hueOffset = getHueOffset(mode, t);
     var targetL = clamp01(LIGHTNESS_BY_STEP[step] + lOffset * 0.12);
-    var distance = Math.abs(step - 500) / 450;
+    var distance = Math.abs(step - anchorStep) / distanceDenominator;
     var chromaFactor = 1 - distance * 0.32;
     if (step <= 100) chromaFactor *= 0.75;
     if (step >= 900) chromaFactor *= 0.8;
