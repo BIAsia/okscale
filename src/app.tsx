@@ -35,6 +35,24 @@ function applyTokens(scale: ScaleColor[], accentHex?: string) {
     }
   }
   root.style.setProperty('--ok-accent-fg', bestFg);
+
+  // Pick readable accent for text on light backgrounds (#f5f5f5 / #fff)
+  // Find the scale step with best contrast against light bg, minimum 4.5:1
+  var bestOnLight = accent;
+  var bestOnLightRatio = contrastRatio(accent, '#f5f5f5');
+  for (var j = 0; j < scale.length; j++) {
+    var r = contrastRatio(scale[j].hex, '#f5f5f5');
+    if (r > bestOnLightRatio) {
+      bestOnLightRatio = r;
+      bestOnLight = scale[j].hex;
+    }
+  }
+  // If accent itself has enough contrast (>= 4.5:1), prefer it
+  var accentOnLightRatio = contrastRatio(accent, '#f5f5f5');
+  if (accentOnLightRatio >= 4.5) {
+    bestOnLight = accent;
+  }
+  root.style.setProperty('--ok-accent-text', bestOnLight);
 }
 
 function normalizePathname(pathname: string): '/' | '/app' | '/docs' {

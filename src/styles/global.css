@@ -42,6 +42,7 @@ body {
   --ok-primary-950: #0a0a0a;
   --ok-accent: var(--ok-primary-500);
   --ok-accent-fg: #000;
+  --ok-accent-text: var(--ok-primary-700);
   --ok-accent-light: var(--ok-primary-200);
   --ok-accent-dark: var(--ok-primary-800);
 
@@ -280,8 +281,8 @@ body {
 }
 
 .docs-nav-link:hover {
-  border-color: var(--ok-accent);
-  color: var(--ok-accent);
+  border-color: var(--ok-accent-text);
+  color: var(--ok-accent-text);
 }
 
 .docs-content-grid {
@@ -449,7 +450,7 @@ body {
 }
 
 .footer-inner .text-nav:hover {
-  color: var(--ok-accent);
+  color: var(--ok-accent-text);
 }
 
 /* Generator */
@@ -522,7 +523,7 @@ body {
 }
 
 .recent-color-chip.active {
-  border-color: var(--ok-accent);
+  border-color: var(--ok-accent-text);
 }
 
 .recent-color-dot {
@@ -855,7 +856,7 @@ body {
 }
 
 .nav-links a:hover {
-  color: var(--ok-accent);
+  color: var(--ok-accent-text);
 }
 
 .hero-scroll-indicator {
@@ -876,19 +877,19 @@ body {
 }
 
 .hero-scroll-indicator:hover {
-  border-color: var(--ok-accent);
-  color: var(--ok-accent);
+  border-color: var(--ok-accent-text);
+  color: var(--ok-accent-text);
   transform: translateX(-50%) translateY(2px);
 }
 
 :focus-visible {
-  outline: 2px solid var(--ok-accent);
+  outline: 2px solid var(--ok-accent-text);
   outline-offset: 2px;
 }
 
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--ok-accent);
+  outline: 2px solid var(--ok-accent-text);
   outline-offset: 2px;
 }
 
