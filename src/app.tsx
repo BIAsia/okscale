@@ -318,5 +318,5 @@ export function App() {
     return <DocsPage onNavigate={navigate} />;
   }
 
-  return <LandingPage baseHex={colorInput} onNavigate={navigate} />;
+  return <LandingPage baseHex={colorInput} onNavigate={navigate} palette={palette} />;
 }
