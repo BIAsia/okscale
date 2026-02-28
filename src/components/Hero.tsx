@@ -1,4 +1,8 @@
-export function Hero() {
+type HeroProps = {
+  onOpenApp?: () => void;
+};
+
+export function Hero(props: HeroProps) {
   return (
     <section
       class="section hero-section"
@@ -10,10 +14,25 @@ export function Hero() {
           ---
         </p>
         <p class="text-body-lg mt-md">
-          Generate perceptually uniform color scales powered by Oklch. Export to CSS, Tailwind, SCSS, Design Tokens,
-          and Figma Variables.
+          Perceptually uniform color scales for modern design systems.
         </p>
-        <p class="text-nav mt-sm text-muted">Free and open source color tooling for modern product teams.</p>
+        <p class="text-nav mt-sm text-muted">
+          Generate tokens in minutes. Export to CSS, Tailwind, SCSS, Design Tokens, and Figma Variables.
+        </p>
+        <div class="hero-actions">
+          <button
+            type="button"
+            class="btn btn-accent"
+            onClick={function () {
+              if (props.onOpenApp) props.onOpenApp();
+            }}
+          >
+            Open Generator
+          </button>
+          <a class="btn btn-secondary" href="#why-oklch">
+            Why Oklch
+          </a>
+        </div>
         <div class="mt-md" style={{ width: '80px', height: '2px', background: 'var(--ok-accent)' }} aria-hidden="true" />
       </div>
       <a href="#why-oklch" class="hero-scroll-indicator text-nav" aria-label="Scroll to Why Oklch">

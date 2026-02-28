@@ -1,8 +1,10 @@
+import { useMemo, useState } from 'preact/hooks';
 import { HARMONY_TYPES, type HarmonyResult, type HarmonyType } from '../lib/harmony';
 import type { GradientResult } from '../lib/gradient';
 import type { FullPalette } from '../lib/palette';
 import { SHADE_MODES, type ShadeMode } from '../lib/shades';
 import type { Oklch } from '../lib/color';
+import { buildUsageMatrix, contrastRatio, ratioGrade } from '../lib/contrast';
 
 type GeneratorProps = {
   colorInput: string;
@@ -18,39 +20,6 @@ type GeneratorProps = {
   onHarmonyTypeChange: (type: HarmonyType) => void;
 };
 
-function ratioGrade(ratio: number): string {
-  if (ratio >= 7) return 'AAA';
-  if (ratio >= 4.5) return 'AA';
-  if (ratio >= 3) return 'AA Large';
-  return 'Fail';
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  var clean = hex.trim().replace(/^#/, '');
-  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
-  var value = parseInt(clean, 16);
-  return {
-    r: ((value >> 16) & 255) / 255,
-    g: ((value >> 8) & 255) / 255,
-    b: (value & 255) / 255
-  };
-}
-
-function contrastRatio(hex: string, againstWhite: boolean): number {
-  var rgb = hexToRgb(hex);
-  if (!rgb) return 0;
-
-  function linear(v: number): number {
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  }
-
-  var luminance = 0.2126 * linear(rgb.r) + 0.7152 * linear(rgb.g) + 0.0722 * linear(rgb.b);
-  var other = againstWhite ? 1 : 0;
-  var light = Math.max(luminance, other);
-  var dark = Math.min(luminance, other);
-  return (light + 0.05) / (dark + 0.05);
-}
-
 function formatHarmonyLabel(label: string): string {
   if (label === 'Split Complementary') return 'Split-Comp';
   return label;
@@ -64,13 +33,23 @@ function formatOklch(value: Oklch | null): string {
 export function Generator(props: GeneratorProps) {
   var previewHex = props.palette ? props.palette.primary.baseHex : '#3b82f6';
 
-  return (
-    <section class="section">
-      <div class="section-inner flex flex-col gap-lg">
-        <h2 class="text-section">Generator</h2>
+  var advancedState = useState(false);
+  var showAdvanced = advancedState[0];
+  var setShowAdvanced = advancedState[1];
 
-        <div class="card flex flex-col gap-md">
-          <h3 class="text-body-lg">Base Color</h3>
+  var usageRows = useMemo(function () {
+    if (!props.palette) return [];
+    return buildUsageMatrix(props.palette.primary.scale);
+  }, [props.palette]);
+
+  return (
+    <section class="section workspace-generator">
+      <div class="section-inner flex flex-col gap-lg">
+        <div class="card quick-start-card" id="quick-start">
+          <div class="quick-start-head">
+            <h2 class="text-body-lg">Quick Start</h2>
+            <span class="text-code text-small">{'Input -> Generate -> Export'}</span>
+          </div>
           <div class="color-input-area">
             <input
               class="text-code color-hex-input"
@@ -98,7 +77,9 @@ export function Generator(props: GeneratorProps) {
             <p id="generator-color-error" class="text-body" style={{ color: '#b91c1c' }}>
               {props.colorError}
             </p>
-          ) : null}
+          ) : (
+            <p class="text-body text-muted">Looks good. Scroll right panel to copy your preferred format.</p>
+          )}
         </div>
 
         <div class="card flex flex-col gap-md">
@@ -123,37 +104,74 @@ export function Generator(props: GeneratorProps) {
           </div>
         </div>
 
-        <div class="card flex flex-col gap-md">
-          <h3 class="text-body-lg">Harmony</h3>
-          <div class="harmony-row">
-            {HARMONY_TYPES.map(function (item) {
-              var active = item.id === props.harmonyType;
-              return (
-                <button
-                  type="button"
-                  key={item.id}
-                  class={active ? 'btn btn-primary' : 'btn btn-secondary'}
-                  aria-pressed={active ? 'true' : 'false'}
-                  onClick={function () {
-                    props.onHarmonyTypeChange(item.id);
-                  }}
-                >
-                  {formatHarmonyLabel(item.label)}
-                </button>
-              );
-            })}
-          </div>
-          <div class="swatch-row">
-            {props.harmony
-              ? props.harmony.colors.map(function (color, index) {
-                  return <div key={color.hex + '-' + index} class="harmony-swatch" style={{ backgroundColor: color.hex }} />;
-                })
-              : null}
-          </div>
+        <div class="card flex flex-col gap-sm">
+          <button
+            type="button"
+            class="advanced-toggle"
+            aria-expanded={showAdvanced ? 'true' : 'false'}
+            onClick={function () {
+              setShowAdvanced(!showAdvanced);
+            }}
+          >
+            <span class="text-body-lg">Advanced controls</span>
+            <span class="text-code">{showAdvanced ? 'Hide' : 'Show'}</span>
+          </button>
+          {showAdvanced ? (
+            <div class="flex flex-col gap-md">
+              <div class="flex flex-col gap-sm">
+                <h3 class="text-body">Harmony</h3>
+                <div class="harmony-row">
+                  {HARMONY_TYPES.map(function (item) {
+                    var active = item.id === props.harmonyType;
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        class={active ? 'btn btn-primary' : 'btn btn-secondary'}
+                        aria-pressed={active ? 'true' : 'false'}
+                        onClick={function () {
+                          props.onHarmonyTypeChange(item.id);
+                        }}
+                      >
+                        {formatHarmonyLabel(item.label)}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div class="swatch-row">
+                  {props.harmony
+                    ? props.harmony.colors.map(function (color, index) {
+                        return <div key={color.hex + '-' + index} class="harmony-swatch" style={{ backgroundColor: color.hex }} />;
+                      })
+                    : null}
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-sm">
+                <h3 class="text-body">Gradient Suggestions</h3>
+                {props.gradients.map(function (gradient, index) {
+                  var label = 'Complement';
+                  if (index === 1) label = 'Light -> Dark';
+                  if (index === 2) label = 'Analogous';
+                  if (index === 3) label = 'Triadic';
+
+                  return (
+                    <div key={'gradient-' + index} class="flex flex-col gap-sm">
+                      <p class="text-body text-muted">{label}</p>
+                      <div class="gradient-bar" style={{ background: gradient.css }} />
+                      <p class="gradient-css text-code">{gradient.css}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p class="text-body text-muted">Harmony and gradient exploration are available when you need deeper tuning.</p>
+          )}
         </div>
 
         {props.palette ? (
-          <div class="grid-2 gap-md">
+          <div class="grid-2 gap-md" id="palette-preview">
             {[
               props.palette.primary,
               props.palette.secondary,
@@ -185,48 +203,53 @@ export function Generator(props: GeneratorProps) {
         ) : null}
 
         {props.palette ? (
-          <div class="card flex flex-col gap-sm">
-            <h3 class="text-body-lg">Contrast Checker</h3>
-            <div class="contrast-grid-head text-code text-small">
-              <span>Step</span>
-              <span>White</span>
-              <span>Black</span>
+          <div class="card flex flex-col gap-sm" id="contrast-matrix">
+            <h3 class="text-body-lg">Contrast Usage Matrix</h3>
+            <p class="text-body text-muted">Recommended step pairs for common UI use cases using the primary scale.</p>
+            <div class="contrast-matrix-head text-code text-small">
+              <span>Use case</span>
+              <span>Pair</span>
+              <span>Ratio</span>
+              <span>Status</span>
             </div>
-            {props.palette.primary.scale.map(function (step) {
-              var whiteRatio = contrastRatio(step.hex, true);
-              var blackRatio = contrastRatio(step.hex, false);
+            {usageRows.map(function (row) {
               return (
-                <div key={step.step} class="contrast-grid-row text-code text-small">
-                  <span>{step.step}</span>
+                <div key={row.label} class="contrast-matrix-row text-code text-small">
+                  <span>{row.label}</span>
                   <span>
-                    {whiteRatio.toFixed(2)} {ratioGrade(whiteRatio)}
+                    text-{row.textStep} on bg-{row.backgroundStep}
                   </span>
-                  <span>
-                    {blackRatio.toFixed(2)} {ratioGrade(blackRatio)}
-                  </span>
+                  <span>{row.ratio.toFixed(2)}</span>
+                  <span>{row.pass ? ratioGrade(row.ratio) : 'Improve'}</span>
                 </div>
               );
             })}
+
+            <details class="contrast-raw">
+              <summary class="text-body">Raw step ratios</summary>
+              <div class="contrast-grid-head text-code text-small">
+                <span>Step</span>
+                <span>White</span>
+                <span>Black</span>
+              </div>
+              {props.palette.primary.scale.map(function (step) {
+                var whiteRatio = contrastRatio('#ffffff', step.hex);
+                var blackRatio = contrastRatio('#000000', step.hex);
+                return (
+                  <div key={step.step} class="contrast-grid-row text-code text-small">
+                    <span>{step.step}</span>
+                    <span>
+                      {whiteRatio.toFixed(2)} {ratioGrade(whiteRatio)}
+                    </span>
+                    <span>
+                      {blackRatio.toFixed(2)} {ratioGrade(blackRatio)}
+                    </span>
+                  </div>
+                );
+              })}
+            </details>
           </div>
         ) : null}
-
-        <div class="card flex flex-col gap-md">
-          <h3 class="text-body-lg">Gradient Suggestions</h3>
-          {props.gradients.map(function (gradient, index) {
-            var label = 'Complement';
-            if (index === 1) label = 'Light -> Dark';
-            if (index === 2) label = 'Analogous';
-            if (index === 3) label = 'Triadic';
-
-            return (
-              <div key={'gradient-' + index} class="flex flex-col gap-sm">
-                <p class="text-body">{label}</p>
-                <div class="gradient-bar" style={{ background: gradient.css }} />
-                <p class="gradient-css text-code">{gradient.css}</p>
-              </div>
-            );
-          })}
-        </div>
       </div>
     </section>
   );
