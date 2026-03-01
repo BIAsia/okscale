@@ -11,6 +11,25 @@ import { decodeWorkspaceState, encodeWorkspaceState, type WorkspaceShareState } 
 import type { ShadeMode } from './lib/shades';
 import { nearestScaleStepForLightness, type AnchorBehavior, type ScaleColor } from './lib/scale';
 
+/* ── Splash screen ── */
+
+function SplashScreen(props: { exiting: boolean; onDone: () => void }) {
+  useEffect(
+    function () {
+      if (!props.exiting) return;
+      var t = setTimeout(props.onDone, 650);
+      return function () { clearTimeout(t); };
+    },
+    [props.exiting]
+  );
+
+  return (
+    <div class={'splash-screen' + (props.exiting ? ' splash-screen--exit' : '')}>
+      <span class="splash-text">OK-Scale</span>
+    </div>
+  );
+}
+
 var WORKSPACE_STATE_STORAGE_KEY = 'okscale.workspace.v1';
 var RECENT_COLORS_STORAGE_KEY = 'okscale.recent-colors.v1';
 
@@ -150,6 +169,24 @@ export function App() {
   var initialRecentColors = useMemo(function () {
     return loadRecentColorsFromStorage();
   }, []);
+
+  var splashState = useState(true);
+  var splashVisible = splashState[0];
+  var setSplashVisible = splashState[1];
+
+  var splashExitingState = useState(false);
+  var splashExiting = splashExitingState[0];
+  var setSplashExiting = splashExitingState[1];
+
+  // Trigger exit after 900ms, then unmount after transition (650ms)
+  useEffect(function () {
+    var t1 = setTimeout(function () { setSplashExiting(true); }, 900);
+    return function () { clearTimeout(t1); };
+  }, []);
+
+  function handleSplashDone() {
+    setSplashVisible(false);
+  }
 
   var routeState = useState<'/' | '/app' | '/docs'>(normalizePathname(window.location.pathname));
   var route = routeState[0];
@@ -363,31 +400,44 @@ export function App() {
 
   if (route === '/app') {
     return (
-      <WorkspacePage
-        onNavigate={navigate}
-        palette={palette}
-        colorInput={colorInput}
-        colorError={colorError}
-        primaryOklch={primaryOklch}
-        harmony={harmony}
-        gradients={gradients}
-        shadeMode={shadeMode}
-        harmonyType={harmonyType}
-        onColorChange={setColorInput}
-        onShadeModeChange={setShadeMode}
-        onHarmonyTypeChange={setHarmonyType}
-        anchorBehavior={anchorBehavior}
-        anchorStep={anchorStep}
-        onAnchorBehaviorChange={setAnchorBehavior}
-        recentColors={recentColors}
-        onSelectRecentColor={setColorInput}
-      />
+      <>
+        {splashVisible && <SplashScreen exiting={splashExiting} onDone={handleSplashDone} />}
+        <WorkspacePage
+          onNavigate={navigate}
+          palette={palette}
+          colorInput={colorInput}
+          colorError={colorError}
+          primaryOklch={primaryOklch}
+          harmony={harmony}
+          gradients={gradients}
+          shadeMode={shadeMode}
+          harmonyType={harmonyType}
+          onColorChange={setColorInput}
+          onShadeModeChange={setShadeMode}
+          onHarmonyTypeChange={setHarmonyType}
+          anchorBehavior={anchorBehavior}
+          anchorStep={anchorStep}
+          onAnchorBehaviorChange={setAnchorBehavior}
+          recentColors={recentColors}
+          onSelectRecentColor={setColorInput}
+        />
+      </>
     );
   }
 
   if (route === '/docs') {
-    return <DocsPage onNavigate={navigate} />;
+    return (
+      <>
+        {splashVisible && <SplashScreen exiting={splashExiting} onDone={handleSplashDone} />}
+        <DocsPage onNavigate={navigate} />
+      </>
+    );
   }
 
-  return <LandingPage baseHex={colorInput} onNavigate={navigate} palette={palette} />;
+  return (
+    <>
+      {splashVisible && <SplashScreen exiting={splashExiting} onDone={handleSplashDone} />}
+      <LandingPage baseHex={colorInput} onNavigate={navigate} palette={palette} />
+    </>
+  );
 }

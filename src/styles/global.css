@@ -1164,6 +1164,36 @@ a:focus-visible {
   margin-top: 64px;
 }
 
+/* ── Splash Screen ── */
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #d9ff00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(0);
+  transition: transform 0.6s cubic-bezier(0.76, 0, 0.24, 1);
+  will-change: transform;
+}
+
+.splash-screen--exit {
+  transform: translateY(-100%);
+}
+
+.splash-text {
+  font-family: 'Hepta Slab', serif;
+  font-weight: 800;
+  font-size: clamp(48px, 12.5vw, 160px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #0b0c07;
+  white-space: nowrap;
+  user-select: none;
+}
+
 /* ── Landing Page Redesign ── */
 
 .landing-wrap {
