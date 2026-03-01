@@ -18,7 +18,7 @@ body {
   line-height: 1.5;
   letter-spacing: -0.48px;
   color: var(--ok-neutral-950);
-  background: var(--ok-neutral-100);
+  background: #f4f7ec;
 }
 
 ::selection {
@@ -1167,17 +1167,21 @@ a:focus-visible {
 /* ── Landing Page Redesign ── */
 
 .landing-wrap {
-  min-height: 100vh;
-  background: var(--ok-neutral-100);
+  height: 100dvh;
+  min-height: 600px;
+  background: #f4f7ec;
   display: flex;
   flex-direction: column;
+  border: 1.5px solid #0b0c07;
+  overflow: hidden;
 }
 
 /* Banner: 4-column color strip */
 .landing-banner {
   display: flex;
   width: 100%;
-  height: 200px;
+  height: 160px;
+  border-bottom: 1.5px solid #0b0c07;
 }
 
 /* ── Banner column ── */
@@ -1188,17 +1192,23 @@ a:focus-visible {
   overflow: hidden;
   cursor: pointer;
   min-width: 0;
-  transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: flex 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1.5px solid #0b0c07;
+}
+.landing-banner-col:last-child {
+  border-right: none;
 }
 
 /* Hovered column: expand to fill nearly all space */
 .landing-banner-col--expanded {
-  flex-grow: 11;
+  flex: 1 1 100%;
 }
 
-/* Other columns while a sibling is expanded: collapse to nothing */
+/* Other columns while a sibling is expanded: collapse to zero width */
 .landing-banner-col--other-hidden {
-  flex-grow: 0.001;
+  flex: 0 0 0;
+  min-width: 0;
+  border-right: none;
 }
 
 /* Collapsing column: flex returns to 1 (default), shades still visible */
@@ -1225,9 +1235,10 @@ a:focus-visible {
 
 /* Palette name label shown in solid (stable) state */
 .landing-banner-label {
-  font-family: 'Inter', sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 22px;
   color: rgba(0, 0, 0, 0.45);
   mix-blend-mode: multiply;
   letter-spacing: 0;
@@ -1259,14 +1270,13 @@ a:focus-visible {
   padding-bottom: 10px;
 }
 
-/* Step number (50, 100, … 950) shown inside each shade strip */
+/* Step number shown inside each shade strip — color set via inline style */
 .landing-banner-shade-step {
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 12px;
   line-height: 1;
-  color: rgba(0, 0, 0, 0.35);
-  mix-blend-mode: multiply;
+  mix-blend-mode: normal;
   user-select: none;
   white-space: nowrap;
 }
@@ -1275,28 +1285,29 @@ a:focus-visible {
 .landing-content {
   display: flex;
   justify-content: space-between;
-  gap: 48px;
-  padding: 48px 32px 0;
-  max-width: 1280px;
-  margin: 0 auto;
+  align-items: flex-start;
   width: 100%;
+  padding: 0;
+  /* no bottom border — OK-Scale hero sits directly below with no divider */
 }
 
 .landing-content-left {
   flex: 1;
-  max-width: 600px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 37px;
+  padding: 48px 20px;
 }
 
 .landing-tagline {
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 32px;
-  line-height: 1.35;
-  letter-spacing: -0.5px;
-  color: #000;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: normal;
+  letter-spacing: 0;
+  color: #0b0c07;
+  padding-left: 8px;
 }
 
 .landing-actions {
@@ -1311,14 +1322,16 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
   font-size: 20px;
+  line-height: 28px;
   letter-spacing: -0.2px;
   padding: 16px 24px;
   border-radius: 999px;
-  border: 1px solid #000;
+  border: 1.5px solid #000;
   transition: transform 0.15s ease;
+  white-space: nowrap;
 }
 
 .landing-btn:hover {
@@ -1326,13 +1339,13 @@ a:focus-visible {
 }
 
 .landing-btn-dark {
-  background: #000;
-  color: #fff;
+  background: #0b0c07;
+  color: #f4f7ec;
 }
 
 .landing-btn-accent {
-  background: var(--ok-highlight);
-  color: var(--ok-highlight-fg);
+  background: #d9ff00;
+  color: #000;
 }
 
 .landing-icon-btn {
@@ -1356,49 +1369,58 @@ a:focus-visible {
 /* Right side link groups */
 .landing-content-right {
   display: flex;
-  gap: 48px;
   flex-shrink: 0;
+  padding-right: 48px;
 }
 
 .landing-link-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 48px;
 }
 
 .landing-link-title {
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 20px;
-  letter-spacing: -0.2px;
-  color: #000;
-  margin-bottom: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: -0.16px;
+  color: #0b0c07;
+  margin-bottom: 0;
 }
 
 .landing-link {
-  font-family: 'Inter', sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
-  font-size: 16px;
-  color: #a7a7a7;
+  font-size: 14px;
+  line-height: 22px;
+  color: #979a8e;
   text-decoration: none;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .landing-link:hover {
-  color: #000;
+  color: #0b0c07;
+}
+
+.landing-link strong {
+  font-weight: 400;
+  color: #0b0c07;
 }
 
 /* Giant hero type */
 .landing-hero-type {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: clamp(100px, 15vw, 200px);
   display: flex;
   align-items: flex-end;
-  padding: 0 32px;
-  max-width: 1280px;
-  margin: 0 auto;
+  padding: 0 0 clamp(8px, 1.25vw, 16px) 0;
   width: 100%;
   overflow: hidden;
   animation: landing-hero-enter 0.8s ease-out 0.3s both;
+  border-bottom: 1.5px solid #0b0c07;
 }
 
 @keyframes landing-hero-enter {
@@ -1415,77 +1437,91 @@ a:focus-visible {
 .landing-hero-text {
   font-family: 'Hepta Slab', serif;
   font-weight: 800;
-  font-size: clamp(80px, 14vw, 200px);
-  line-height: 0.85;
-  letter-spacing: -0.04em;
-  color: #000;
+  font-size: clamp(60px, 15.625vw, 200px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #0b0c07;
   white-space: nowrap;
   -webkit-user-select: none;
   user-select: none;
 }
 
-/* Footer bar */
+/* Footer bar — 4-cell grid */
 .landing-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  max-width: 1280px;
-  margin: 0 auto;
+  align-items: stretch;
   width: 100%;
+  height: 56px;
+}
+
+.landing-footer-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 26px;
+  border-right: 1.5px solid #0b0c07;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.landing-footer-cell:last-child {
+  border-right: none;
+  justify-content: flex-end;
 }
 
 .landing-footer-brand {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  white-space: nowrap;
 }
 
 .landing-footer-name {
   font-family: 'Inter', sans-serif;
   font-weight: 800;
   font-size: 14px;
-  color: #000;
+  line-height: 18px;
+  color: #0b0c07;
 }
 
 .landing-footer-label {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 14px;
-  color: #a7a7a7;
+  line-height: 18px;
+  color: #979a8e;
 }
 
-.landing-footer-nav {
-  display: flex;
-  gap: 60px;
-}
-
-.landing-footer-nav a {
+.landing-footer-link {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
-  color: #000;
+  line-height: 18px;
+  color: #0b0c07;
   text-decoration: none;
+  white-space: nowrap;
   transition: color 0.2s ease;
 }
 
-.landing-footer-nav a:hover {
-  color: #a7a7a7;
+.landing-footer-link:hover {
+  color: #979a8e;
 }
 
 .landing-footer-icons {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
 }
 
 .landing-footer-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;
+  width: 32px;
+  height: 32px;
+  color: #0b0c07;
   text-decoration: none;
-  opacity: 0.7;
+  opacity: 0.8;
   transition: opacity 0.2s ease;
 }
 
@@ -1514,6 +1550,7 @@ a:focus-visible {
   .landing-banner {
     flex-direction: column;
     height: auto;
+    border-bottom: none;
   }
 
   .landing-banner-col {
@@ -1521,20 +1558,20 @@ a:focus-visible {
     width: 100%;
     height: 80px;
     transition: none;
+    border-right: none;
+    border-bottom: 1.5px solid #0b0c07;
   }
 
   .landing-content {
     flex-direction: column;
-    gap: 32px;
-    padding: 32px 16px 0;
   }
 
   .landing-content-left {
-    max-width: 100%;
+    padding: 32px 16px;
   }
 
   .landing-tagline {
-    font-size: 24px;
+    font-size: 18px;
   }
 
   .landing-btn {
@@ -1542,29 +1579,42 @@ a:focus-visible {
     padding: 12px 20px;
   }
 
-  .landing-icon-btn {
-    width: 48px;
-    height: 48px;
-  }
-
   .landing-content-right {
     flex-direction: column;
-    gap: 24px;
+    padding-right: 0;
+  }
+
+  .landing-link-group {
+    padding: 24px 16px;
   }
 
   .landing-hero-type {
-    padding: 0 16px;
+    flex: none;
+    height: clamp(140px, 40vw, 220px);
+    padding: 0 0 16px 0;
+    order: 1;
+  }
+
+  .landing-content {
+    order: 2;
   }
 
   .landing-footer {
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
-    padding: 20px 16px;
+    order: 3;
   }
 
-  .landing-footer-nav {
-    gap: 24px;
+  .landing-footer {
     flex-wrap: wrap;
+    height: auto;
+  }
+
+  .landing-footer-cell {
+    flex: 1 1 50%;
+    height: 56px;
+    border-bottom: 1.5px solid #0b0c07;
+  }
+
+  .landing-footer-cell:last-child {
+    border-right: none;
   }
 }
