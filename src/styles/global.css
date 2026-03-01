@@ -1171,10 +1171,8 @@ a:focus-visible {
   background: var(--ok-neutral-50);
   display: flex;
   flex-direction: column;
-  border: 1.5px solid var(--ok-neutral-950);
 }
 
-/* Banner: 4-column color strip */
 /* ── Loading overlay (motion.dev powered) ── */
 .landing-loading {
   position: fixed;
@@ -1212,6 +1210,9 @@ a:focus-visible {
 /* ── Landing main ── */
 .landing-main {
   opacity: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .landing-main--visible {
@@ -1223,6 +1224,10 @@ a:focus-visible {
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: calc(100vh - 202px);
 }
 
 .landing-content-area--visible {
@@ -1230,28 +1235,34 @@ a:focus-visible {
   transform: translateY(0);
 }
 
-/* ── Banner (shade-based, all shades always in DOM) ── */
+/* ── Banner (full-width role expand + smooth collapse) ── */
 .landing-banner {
   display: flex;
   width: 100%;
   height: 202px;
   overflow: hidden;
+  border: 1.5px solid var(--ok-neutral-950);
 }
 
 .landing-banner-role {
-  flex: 1;
+  flex: 1 1 0%;
   height: 100%;
   overflow: hidden;
   cursor: pointer;
   display: flex;
-  transition: flex 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  border-right: 1.5px solid var(--ok-neutral-950);
+  transition: flex 0.46s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-banner-role:last-child {
+  border-right: none;
 }
 
 .landing-banner-role--hidden {
-  flex: 0;
+  flex: 0 1 0%;
+  border-right: 0;
 }
 
-/* Each shade: default width 0, except the base shade */
 .landing-banner-shade {
   flex: 0 0 0%;
   height: 100%;
@@ -1260,30 +1271,37 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: flex 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-  border-right: 1.5px solid var(--ok-neutral-950);
+  opacity: 1;
+  transition: flex 0.46s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
 }
 
-.landing-banner-shade:last-child {
-  border-right: none;
-}
-
-/* Base shade: visible by default, takes full width of its role */
 .landing-banner-shade--base {
   flex: 1 1 0%;
 }
 
-/* When role is active (hovered): all shades expand equally */
-.landing-banner-role--active .landing-banner-shade {
-  flex: 1 1 0%;
+.landing-banner-role--active {
+  border-right: 0;
 }
 
-/* When role is hidden: base shade also collapses */
+.landing-banner-role--active .landing-banner-shade {
+  flex: 1 1 0%;
+  border-right: 1.5px solid var(--ok-neutral-950);
+}
+
+.landing-banner-role--active .landing-banner-shade:last-child {
+  border-right: 0;
+}
+
 .landing-banner-role--hidden .landing-banner-shade--base {
   flex: 0 0 0%;
 }
 
-/* Role label: shown on the base shade in default state */
+/* collapse widths first, then fade non-base shades */
+.landing-banner-role--fading .landing-banner-shade:not(.landing-banner-shade--base) {
+  opacity: 0;
+  transition: flex 0.46s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.16s linear 0.22s;
+}
+
 .landing-banner-role-label {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
@@ -1292,7 +1310,6 @@ a:focus-visible {
   pointer-events: none;
 }
 
-/* Shade step label: hidden by default, shown on hover */
 .landing-banner-shade-label {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 400;
@@ -1300,14 +1317,13 @@ a:focus-visible {
   opacity: 0;
   white-space: nowrap;
   position: absolute;
-  transition: opacity 0.3s ease 0.15s;
+  transition: opacity 0.24s ease 0.14s;
 }
 
 .landing-banner-role--active .landing-banner-shade-label {
   opacity: 1;
 }
 
-/* Hide role label when active */
 .landing-banner-role--active .landing-banner-role-label {
   display: none;
 }
@@ -1316,15 +1332,16 @@ a:focus-visible {
 .landing-content {
   display: flex;
   justify-content: space-between;
-  gap: 0;
-  padding: 48px 20px 48px 20px;
+  gap: 24px;
+  padding: 48px 20px 40px;
   max-width: 1280px;
   margin: 0 auto;
   width: 100%;
 }
 
 .landing-content-left {
-  flex: 1;
+  flex: 1 1 520px;
+  min-width: 280px;
   display: flex;
   flex-direction: column;
   gap: 37px;
@@ -1396,7 +1413,8 @@ a:focus-visible {
 .landing-content-right {
   display: flex;
   gap: 0;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  margin-left: auto;
 }
 
 .landing-link-group {
@@ -1404,6 +1422,7 @@ a:focus-visible {
   flex-direction: column;
   gap: 6px;
   padding: 0 48px;
+  min-width: 220px;
 }
 
 .landing-link-title {
@@ -1432,10 +1451,11 @@ a:focus-visible {
   flex: 1;
   display: flex;
   align-items: flex-end;
-  padding: 0 32px;
+  padding: 0 20px;
   max-width: 1280px;
-  margin: 0 auto;
+  margin: auto auto 0;
   width: 100%;
+  min-height: 220px;
   overflow: hidden;
   animation: landing-hero-enter 0.8s ease-out 0.3s both;
 }
@@ -1544,64 +1564,95 @@ a:focus-visible {
 }
 
 /* Landing responsive */
-@media (max-width: 768px) {
-  .landing-banner {
-    flex-direction: column;
-    height: auto;
-  }
-
-  .landing-banner-role {
-    height: 120px;
-    border-right: none;
-    border-bottom: 1.5px solid var(--ok-neutral-950);
-  }
-
-  .landing-banner-role:last-child {
-    border-bottom: none;
-  }
-
+@media (max-width: 1100px) {
   .landing-content {
     flex-direction: column;
     gap: 32px;
-    padding: 32px 16px 0;
+    padding: 40px 20px 24px;
+  }
+
+  .landing-content-right {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .landing-link-group {
+    flex: 1;
+    min-width: 0;
+    padding: 0 20px 0 8px;
+  }
+
+  .landing-hero-text {
+    font-size: clamp(72px, 16vw, 180px);
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-banner {
+    height: 156px;
+  }
+
+  .landing-banner-role-label,
+  .landing-banner-shade-label {
+    font-size: 14px;
+  }
+
+  .landing-content-area {
+    min-height: calc(100vh - 156px);
+  }
+
+  .landing-content {
+    padding: 28px 16px 20px;
   }
 
   .landing-content-left {
-    max-width: 100%;
+    padding-left: 0;
+    gap: 24px;
   }
 
   .landing-tagline {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .landing-btn {
-    font-size: 16px;
-    padding: 12px 20px;
-  }
-
-  .landing-icon-btn {
-    width: 48px;
-    height: 48px;
+    font-size: 15px;
+    padding: 12px 18px;
   }
 
   .landing-content-right {
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
+  }
+
+  .landing-link-group {
+    padding: 0;
   }
 
   .landing-hero-type {
+    min-height: 140px;
     padding: 0 16px;
   }
 
-  .landing-footer {
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
-    padding: 20px 16px;
+  .landing-hero-text {
+    font-size: clamp(60px, 22vw, 120px);
+    line-height: 0.9;
   }
 
-  .landing-footer-nav {
-    gap: 24px;
-    flex-wrap: wrap;
+  .landing-footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-footer-cell {
+    min-height: 56px;
+    border-right: 1.5px solid var(--ok-neutral-950);
+  }
+
+  .landing-footer-cell:nth-child(2n) {
+    border-right: none;
+  }
+
+  .landing-footer-social {
+    justify-content: space-between;
   }
 }
