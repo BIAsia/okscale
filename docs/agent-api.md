@@ -60,6 +60,26 @@ Endpoints:
 - `GET /api/schema`
 - `GET /api/schema?name=generate-request`
 
+## MCP Server (stdio)
+
+Run MCP server:
+
+```bash
+npm run mcp
+```
+
+Provided tools:
+
+- `generate_palette`
+- `export_tokens`
+- `decode_share_url`
+- `validate_color`
+
+Tool behavior:
+
+- Tool success returns both `content` (JSON string) and `structuredContent` (JSON object).
+- Tool failures return `isError: true` with the same machine error envelope used by CLI/API.
+
 ### Generate over HTTP
 
 ```bash
