@@ -33,14 +33,6 @@ function bestContrastColor(scale: ScaleColor[], bgHex: string): string {
   return best;
 }
 
-/* Get step index for the "100" step (anchor display step) */
-function getStep100Index(scale: ScaleColor[]): number {
-  for (var i = 0; i < scale.length; i++) {
-    if (scale[i].step === 100) return i;
-  }
-  return 1;
-}
-
 /* Get step hex by step number */
 function getStepHex(scale: ScaleColor[], step: number): string {
   for (var i = 0; i < scale.length; i++) {
@@ -174,34 +166,31 @@ function LandingColorBanner(props: { palette: FullPalette | null }) {
   var hoveredState = useState(null as PaletteRole | null);
   var hovered = hoveredState[0];
   var setHovered = hoveredState[1];
-  var fadingState = useState(null as PaletteRole | null);
-  var fadingRole = fadingState[0];
-  var setFadingRole = fadingState[1];
-  var fadeTimerRef = useRef(0);
+  var leavingState = useState(null as PaletteRole | null);
+  var leavingRole = leavingState[0];
+  var setLeavingRole = leavingState[1];
   var p = props.palette;
-
-  useEffect(function () {
-    return function () {
-      if (fadeTimerRef.current) {
-        window.clearTimeout(fadeTimerRef.current);
-      }
-    };
-  }, []);
+  var isInteractive = hovered !== null || leavingRole !== null;
 
   return (
-    <div class="landing-banner" role="banner" aria-label="Color palette preview">
+    <div
+      class={'landing-banner' + (isInteractive ? ' landing-banner--interactive' : '')}
+      role="banner"
+      aria-label="Color palette preview"
+    >
       {ROLES.map(function (role) {
         var entry = p ? p[role] : null;
         var isActive = hovered === role;
         var isHidden = hovered !== null && hovered !== role;
-        var isFading = hovered === null && fadingRole === role;
+        var isLeaving = hovered === null && leavingRole === role;
         var cls = 'landing-banner-role';
         if (isActive) cls += ' landing-banner-role--active';
         if (isHidden) cls += ' landing-banner-role--hidden';
-        if (isFading) cls += ' landing-banner-role--fading';
+        if (isLeaving) cls += ' landing-banner-role--leaving';
 
         var scale = entry ? entry.scale : [];
         var baseIdx = scale.length > 0 ? getBaseStepIndex(scale) : -1;
+        var themeHex = scale.length > 0 ? getStepHex(scale, 100) : '#ccc';
         var labelColor = scale.length > 0 ? getStepHex(scale, 500) : '#000';
 
         return (
@@ -209,49 +198,51 @@ function LandingColorBanner(props: { palette: FullPalette | null }) {
             key={role}
             class={cls}
             onMouseEnter={function () {
-              if (fadeTimerRef.current) {
-                window.clearTimeout(fadeTimerRef.current);
-              }
-              setFadingRole(null);
+              setLeavingRole(null);
               setHovered(role);
             }}
             onMouseLeave={function () {
-              setHovered(null);
-              setFadingRole(role);
-              if (fadeTimerRef.current) {
-                window.clearTimeout(fadeTimerRef.current);
+              if (hovered === role) {
+                setHovered(null);
+                setLeavingRole(role);
               }
-              fadeTimerRef.current = window.setTimeout(function () {
-                setFadingRole(null);
-                fadeTimerRef.current = 0;
-              }, 280);
             }}
           >
-            {scale.map(function (item, i) {
-              var isBase = i === baseIdx;
-              var shadeCls = 'landing-banner-shade';
-              if (isBase) shadeCls += ' landing-banner-shade--base';
-              var textColor = bestContrastColor(scale, item.hex);
-              return (
-                <div
-                  key={i}
-                  class={shadeCls}
-                  style={{ background: item.hex }}
-                >
-                  {isBase && !isActive ? (
-                    <span class="landing-banner-role-label" style={{ color: labelColor }}>
-                      {ROLE_LABELS[role]}
-                    </span>
-                  ) : null}
-                  <span
-                    class="landing-banner-shade-label"
-                    style={{ color: textColor }}
+            <div
+              class="landing-banner-theme"
+              style={{ background: themeHex }}
+              onAnimationEnd={function () {
+                if (leavingRole === role) {
+                  setLeavingRole(null);
+                }
+              }}
+            >
+              <span class="landing-banner-role-label" style={{ color: labelColor }}>
+                {ROLE_LABELS[role]}
+              </span>
+            </div>
+            <div class="landing-banner-shades">
+              {scale.map(function (item, i) {
+                var isBase = i === baseIdx;
+                var shadeCls = 'landing-banner-shade';
+                if (isBase) shadeCls += ' landing-banner-shade--base';
+                var textColor = bestContrastColor(scale, item.hex);
+                return (
+                  <div
+                    key={i}
+                    class={shadeCls}
+                    style={{ background: item.hex }}
                   >
-                    {item.step}
-                  </span>
-                </div>
-              );
-            })}
+                    <span
+                      class="landing-banner-shade-label"
+                      style={{ color: textColor }}
+                    >
+                      {item.step}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}
