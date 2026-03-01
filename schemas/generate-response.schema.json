@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://okscale.dev/schemas/generate-response.schema.json",
+  "title": "OKScale Generate Response",
+  "type": "object",
+  "required": ["schemaVersion", "algorithmVersion", "request", "warnings", "palette", "harmony"],
+  "properties": {
+    "schemaVersion": { "type": "string", "enum": ["1.0"] },
+    "algorithmVersion": { "type": "string" },
+    "request": { "type": "object" },
+    "warnings": { "type": "array" },
+    "palette": { "type": "object" },
+    "harmony": { "type": "object" }
+  }
+}

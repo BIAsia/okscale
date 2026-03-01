@@ -38,6 +38,28 @@ npm run build
 npm run preview
 ```
 
+## Machine-Facing Usage (AI / MCP / Agents)
+
+- JSON schema contracts live in `schemas/*.schema.json`.
+- Headless CLI is available via `npm run cli -- <command>`.
+- Contract and examples are documented in `docs/agent-api.md`.
+
+Quick examples:
+
+```bash
+# Generate palette JSON
+cat request.json | npm run cli -- generate
+
+# Export tokens/css/tailwind/figma/scss
+cat request.json | npm run cli -- export
+```
+
+Run core tests:
+
+```bash
+npm run test:core
+```
+
 ## Notes
 
 - Core color conversion and gamut mapping live in `src/lib/color.ts`.
