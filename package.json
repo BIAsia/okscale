@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "cli": "tsx src/cli/okscale.ts",
     "mcp": "tsx src/mcp/okscale-mcp.ts",
-    "test:core": "tsx --test src/core/service.test.ts src/server/http.test.ts src/mcp/tools.test.ts"
+    "test:core": "tsx --test src/core/service.test.ts src/server/http.test.ts src/mcp/tools.test.ts src/mcp/client-smoke.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

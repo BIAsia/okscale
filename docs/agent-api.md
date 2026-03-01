@@ -133,3 +133,4 @@ When input is invalid, CLI writes this to stderr and exits with code `1`:
 - Prefer `anchorBehavior: "preserve-input"` when exact brand color anchoring is required.
 - Read `request.normalizedHex` from response for canonical color identity.
 - Use `warnings` to detect normalization or gamut mapping side effects.
+- For OpenClaw/mcporter/Claude Desktop setup, see `docs/agent-integration.md`.

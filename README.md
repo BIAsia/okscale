@@ -44,7 +44,8 @@ npm run preview
 - Headless CLI is available via `npm run cli -- <command>`.
 - HTTP endpoints are exposed on Vercel via `/api/generate`, `/api/export`, `/api/schema`.
 - MCP stdio server is available via `npm run mcp`.
-- Contract and examples are documented in `docs/agent-api.md`.
+- Contract and API examples are documented in `docs/agent-api.md`.
+- Client integration quickstart is in `docs/agent-integration.md`.
 
 Quick examples:
 
