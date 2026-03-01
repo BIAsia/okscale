@@ -1175,20 +1175,36 @@ a:focus-visible {
 
 /* Banner: 4-column color strip */
 .landing-banner {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  display: flex;
   width: 100%;
   height: 200px;
 }
 
+/* ── Banner column ── */
 .landing-banner-col {
   position: relative;
+  flex: 1 1 0%;
   height: 100%;
   overflow: hidden;
   cursor: pointer;
+  min-width: 0;
+  transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Solid color layer — visible by default, fades out on hover */
+/* Hovered column: expand to fill nearly all space */
+.landing-banner-col--expanded {
+  flex-grow: 11;
+}
+
+/* Other columns while a sibling is expanded: collapse to nothing */
+.landing-banner-col--other-hidden {
+  flex-grow: 0.001;
+}
+
+/* Collapsing column: flex returns to 1 (default), shades still visible */
+/* .landing-banner-col--collapsing uses the default flex-grow: 1 */
+
+/* Solid color layer — visible normally, fades out when active */
 .landing-banner-solid {
   position: absolute;
   inset: 0;
@@ -1196,44 +1212,63 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   opacity: 1;
-  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;
 }
 
-.landing-banner-col--expanded .landing-banner-solid {
+/* Hide solid while shades are shown (expanded AND collapsing) */
+.landing-banner-col--expanded .landing-banner-solid,
+.landing-banner-col--collapsing .landing-banner-solid {
   opacity: 0;
+  pointer-events: none;
 }
 
-.landing-banner-hex {
-  font-family: 'JetBrains Mono', monospace;
+/* Palette name label shown in solid (stable) state */
+.landing-banner-label {
+  font-family: 'Inter', sans-serif;
   font-weight: 400;
-  font-size: 16px;
-  color: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
   mix-blend-mode: multiply;
-  transition: opacity 0.3s ease;
+  letter-spacing: 0;
+  user-select: none;
 }
 
-.landing-banner-col--expanded .landing-banner-hex {
-  opacity: 0;
-}
-
-/* Shades layer — hidden by default, fades in on hover */
+/* Shades layer — hidden by default, shown when active */
 .landing-banner-shades {
   position: absolute;
   inset: 0;
   display: flex;
   opacity: 0;
-  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 }
 
-.landing-banner-col--expanded .landing-banner-shades {
+.landing-banner-col--expanded .landing-banner-shades,
+.landing-banner-col--collapsing .landing-banner-shades {
   opacity: 1;
 }
 
 .landing-banner-shade {
   flex: 1;
   height: 100%;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+}
+
+/* Step number (50, 100, … 950) shown inside each shade strip */
+.landing-banner-shade-step {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.35);
+  mix-blend-mode: multiply;
+  user-select: none;
+  white-space: nowrap;
 }
 
 /* Content area */
@@ -1438,6 +1473,26 @@ a:focus-visible {
   color: #a7a7a7;
 }
 
+.landing-footer-icons {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.landing-footer-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.landing-footer-icon-btn:hover {
+  opacity: 1;
+}
+
 /* Landing page fade-in for sections */
 @keyframes landing-fade-in {
   from {
@@ -1457,12 +1512,15 @@ a:focus-visible {
 /* Landing responsive */
 @media (max-width: 768px) {
   .landing-banner {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     height: auto;
   }
 
   .landing-banner-col {
-    height: 120px;
+    flex: none !important;
+    width: 100%;
+    height: 80px;
+    transition: none;
   }
 
   .landing-content {
