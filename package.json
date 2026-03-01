@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "cli": "tsx src/cli/okscale.ts",
-    "test:core": "tsx --test src/core/service.test.ts"
+    "test:core": "tsx --test src/core/service.test.ts src/server/http.test.ts"
   },
   "dependencies": {
     "preact": "^10.26.4"

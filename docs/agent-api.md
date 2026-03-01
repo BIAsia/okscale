@@ -51,7 +51,50 @@ echo '{
 npm run cli -- schema generate-request
 ```
 
+## HTTP API (Vercel Functions)
+
+Endpoints:
+
+- `POST /api/generate`
+- `POST /api/export`
+- `GET /api/schema`
+- `GET /api/schema?name=generate-request`
+
+### Generate over HTTP
+
+```bash
+curl -sS -X POST "https://<your-domain>/api/generate" \
+  -H "content-type: application/json" \
+  -d '{
+    "colorInput": "#3b82f6",
+    "shadeMode": "natural",
+    "harmonyType": "complementary",
+    "anchorBehavior": "preserve-input"
+  }'
+```
+
+### Export over HTTP
+
+```bash
+curl -sS -X POST "https://<your-domain>/api/export" \
+  -H "content-type: application/json" \
+  -d '{
+    "colorInput": "#3b82f6",
+    "shadeMode": "natural",
+    "harmonyType": "complementary",
+    "format": "tokens",
+    "namingPreset": "numeric"
+  }'
+```
+
 ## Stable Error Shape
+
+HTTP status mapping:
+
+- `400`: request/body JSON malformed (`INVALID_REQUEST`)
+- `405`: wrong HTTP method (`METHOD_NOT_ALLOWED`)
+- `422`: valid JSON but unsupported or invalid domain input
+- `500`: internal failures (`INTERNAL_ERROR`)
 
 When input is invalid, CLI writes this to stderr and exits with code `1`:
 

@@ -87,7 +87,9 @@ export type MachineErrorCode =
   | 'UNSUPPORTED_HARMONY_TYPE'
   | 'UNSUPPORTED_ANCHOR_BEHAVIOR'
   | 'UNSUPPORTED_EXPORT_FORMAT'
-  | 'UNSUPPORTED_NAMING_PRESET';
+  | 'UNSUPPORTED_NAMING_PRESET'
+  | 'METHOD_NOT_ALLOWED'
+  | 'INTERNAL_ERROR';
 
 export type MachineErrorShape = {
   error: {

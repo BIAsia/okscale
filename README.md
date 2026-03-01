@@ -42,6 +42,7 @@ npm run preview
 
 - JSON schema contracts live in `schemas/*.schema.json`.
 - Headless CLI is available via `npm run cli -- <command>`.
+- HTTP endpoints are exposed on Vercel via `/api/generate`, `/api/export`, `/api/schema`.
 - Contract and examples are documented in `docs/agent-api.md`.
 
 Quick examples:
