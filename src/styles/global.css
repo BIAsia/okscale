@@ -1470,6 +1470,7 @@ a:focus-visible {
   font-size: clamp(60px, 15.625vw, 200px);
   line-height: 1;
   letter-spacing: -0.02em;
+  padding-left: 12px;
   color: #0b0c07;
   white-space: nowrap;
   -webkit-user-select: none;
