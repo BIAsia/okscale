@@ -827,46 +827,128 @@ export function Generator(props: GeneratorProps) {
               <div class="gen-contrast-tab">
                 {props.palette ? (
                   <>
-                    <p class="text-body text-muted">
-                      Recommended step pairs for common UI use cases (primary scale).
-                    </p>
-                    <div class="contrast-matrix-head text-code text-small">
-                      <span>Use case</span>
-                      <span>Pair</span>
-                      <span>Ratio</span>
-                      <span>Status</span>
+                    {/* ── Use case header ── */}
+                    <div class="gen-palette-role-header">
+                      <span class="gen-palette-role-name">Use cases</span>
+                      <span class="gen-palette-role-hex">Best-fit pairs from the primary scale</span>
                     </div>
-                    {usageRows.map(function (row) {
-                      return (
-                        <div key={row.label} class="contrast-matrix-row text-code text-small">
-                          <span>{row.label}</span>
-                          <span>
-                            text-{row.textStep} on bg-{row.backgroundStep}
-                          </span>
-                          <span>{row.ratio.toFixed(2)}</span>
-                          <span>{row.pass ? ratioGrade(row.ratio) : 'Improve'}</span>
-                        </div>
-                      );
-                    })}
-                    <details class="contrast-raw">
-                      <summary class="text-body">Raw step ratios</summary>
-                      <div class="contrast-grid-head text-code text-small">
-                        <span>Step</span>
-                        <span>White</span>
-                        <span>Black</span>
-                      </div>
-                      {props.palette.primary.scale.map(function (step) {
-                        var wr = contrastRatio('#ffffff', step.hex);
-                        var br = contrastRatio('#000000', step.hex);
+
+                    {/* ── Use case cards ── */}
+                    <div class="gen-contrast-use-cases">
+                      {usageRows.map(function (row) {
+                        var textHex = scaleHex(props.palette!.primary, row.textStep, '#000000');
+                        var bgHex = scaleHex(props.palette!.primary, row.backgroundStep, '#ffffff');
+                        var grade = row.pass ? ratioGrade(row.ratio) : 'Fail';
+                        var gradeClass = grade === 'AAA' ? 'gcg-aaa' : grade === 'AA' ? 'gcg-aa' : grade === 'AA Large' ? 'gcg-aal' : 'gcg-fail';
+                        var exampleText =
+                          row.label === 'Body text on light surfaces' ? 'The quick brown fox jumps over the lazy dog.' :
+                          row.label === 'Body text on brand surfaces' ? 'Get started →' :
+                          row.label === 'Large headlines on brand surfaces' ? 'Hello.' :
+                          'Last updated 2 hours ago';
+                        var isLargeType = row.label === 'Large headlines on brand surfaces';
                         return (
-                          <div key={step.step} class="contrast-grid-row text-code text-small">
-                            <span>{step.step}</span>
-                            <span>{wr.toFixed(2)} {ratioGrade(wr)}</span>
-                            <span>{br.toFixed(2)} {ratioGrade(br)}</span>
+                          <div key={row.label} class="gen-contrast-card">
+                            {/* Preview swatch */}
+                            <div class="gen-contrast-preview" style={{ background: bgHex }}>
+                              <span
+                                class="gen-contrast-preview-text"
+                                style={{
+                                  color: textHex,
+                                  fontSize: isLargeType ? '32px' : '13px',
+                                  fontWeight: isLargeType ? '800' : '400',
+                                  fontFamily: isLargeType ? "'Hepta Slab', serif" : "'JetBrains Mono', monospace",
+                                  lineHeight: isLargeType ? '1' : '1.5',
+                                  maxWidth: '100%',
+                                  wordBreak: 'break-word',
+                                  textAlign: 'left',
+                                }}
+                              >
+                                {exampleText}
+                              </span>
+                            </div>
+                            {/* Meta */}
+                            <div class="gen-contrast-card-meta">
+                              <span class="gen-contrast-card-label">{row.label}</span>
+                              <div class="gen-contrast-card-row">
+                                <span class="gen-contrast-card-pair">
+                                  <span class="gen-contrast-dot" style={{ background: textHex, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' }} />
+                                  {row.textStep}
+                                  <span class="gen-contrast-on">on</span>
+                                  <span class="gen-contrast-dot" style={{ background: bgHex, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' }} />
+                                  {row.backgroundStep}
+                                </span>
+                                <span class={'gen-contrast-grade ' + gradeClass}>
+                                  {row.ratio.toFixed(1)}:1 · {grade}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
-                    </details>
+                    </div>
+
+                    {/* ── Raw step ratios ── */}
+                    {(function () {
+                      var scale = props.palette!.primary.scale;
+                      // crossover: first step where white has >= contrast than black
+                      var crossoverStep = 0;
+                      for (var ci = 0; ci < scale.length; ci++) {
+                        if (contrastRatio('#ffffff', scale[ci].hex) >= contrastRatio('#000000', scale[ci].hex)) {
+                          crossoverStep = scale[ci].step;
+                          break;
+                        }
+                      }
+                      // only steps where the best ratio passes AA (>= 4.5)
+                      var passing = scale.filter(function (s) {
+                        return Math.max(contrastRatio('#ffffff', s.hex), contrastRatio('#000000', s.hex)) >= 4.5;
+                      });
+                      return (
+                        <>
+                          <div class="gen-palette-role-header">
+                            <span class="gen-palette-role-name">Raw step ratios</span>
+                            <span class="gen-palette-role-hex">
+                              white on {crossoverStep}+ · black below {crossoverStep} · AA passing only
+                            </span>
+                          </div>
+                          <div class="gen-contrast-raw-grid">
+                            <div class="gen-contrast-raw-row gen-contrast-raw-row--head gen-contrast-raw-row--3col">
+                              <span />
+                              <span>Step</span>
+                              <span>Ratio</span>
+                            </div>
+                            {passing.map(function (step) {
+                              var wr = contrastRatio('#ffffff', step.hex);
+                              var br = contrastRatio('#000000', step.hex);
+                              var useWhite = wr >= br;
+                              var ratio = useWhite ? wr : br;
+                              var grade = ratioGrade(ratio);
+                              var badgeClass = grade === 'AAA' ? 'gcg-pass-sm gcg-pass-aaa' : 'gcg-pass-sm';
+                              return (
+                                <div key={step.step} class="gen-contrast-raw-row gen-contrast-raw-row--3col">
+                                  <div class="gen-contrast-raw-swatch" style={{ background: step.hex }} />
+                                  <span class="gen-contrast-raw-step">
+                                    {step.step}
+                                    <span
+                                      class="gen-contrast-fg-pill"
+                                      style={{
+                                        background: useWhite ? '#ffffff' : '#000000',
+                                        color: useWhite ? '#000000' : '#ffffff',
+                                        border: '1px solid rgba(0,0,0,0.12)',
+                                      }}
+                                    >
+                                      {useWhite ? 'W' : 'B'}
+                                    </span>
+                                  </span>
+                                  <span class="gen-contrast-raw-ratio">
+                                    {ratio.toFixed(1)}:1 <span class={'gen-contrast-badge ' + badgeClass}>{grade}</span>
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </>
                 ) : (
                   <div class="gen-empty-state">
