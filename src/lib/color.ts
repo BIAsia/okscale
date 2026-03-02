@@ -152,6 +152,25 @@ export function gamutMapOklch(lch: Oklch): RGB {
   return oklabToRgb(oklchToOklab({ l: normalized.l, c: low, h: normalized.h }));
 }
 
+/**
+ * Returns the maximum OKLCH chroma that is still within the sRGB gamut
+ * for the given lightness and hue. Used to compute relative chroma
+ * (actual_chroma / maxChromaInGamut) consistently across all scale steps.
+ */
+export function maxChromaInGamut(l: number, h: number): number {
+  var nl = clamp01(l);
+  var nh = ((h % 360) + 360) % 360;
+  var lo = 0;
+  var hi = 0.5; // 0.5 comfortably exceeds any sRGB gamut boundary
+  for (var i = 0; i < 24; i++) {
+    var mid = (lo + hi) / 2;
+    var trial = oklabToRgbUnclamped(oklchToOklab({ l: nl, c: mid, h: nh }));
+    if (isInSrgbGamut(trial)) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
+
 function parseNumberList(content: string): number[] {
   return content
     .split(',')

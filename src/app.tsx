@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { DocsPage } from './pages/DocsPage';
 import { LandingPage } from './pages/LandingPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { parseColorInput, rgbToHex, rgbToOklch } from './lib/color';
 import { contrastRatio } from './lib/contrast';
-import { suggestGradients } from './lib/gradient';
+import { gradientFromHarmony, gradientFromHarmonyVivid, gradientFromPair } from './lib/gradient';
 import { generateHarmony, type HarmonyType } from './lib/harmony';
-import { generateFullPalette, type FullPalette } from './lib/palette';
+import { generateFullPalette, type FullPalette, type NeutralMode } from './lib/palette';
 import { decodeWorkspaceState, encodeWorkspaceState, type WorkspaceShareState } from './lib/share';
 import type { ShadeMode } from './lib/shades';
 import { nearestScaleStepForLightness, type AnchorBehavior, type ScaleColor } from './lib/scale';
@@ -147,7 +147,7 @@ function loadRecentColorsFromStorage(): string[] {
       .filter(function (value) {
         return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
       })
-      .slice(0, 8);
+;
   } catch (_err) {
     return [];
   }
@@ -196,6 +196,10 @@ export function App() {
   var colorInput = colorInputState[0];
   var setColorInput = colorInputState[1];
 
+  var neutralModeState = useState<NeutralMode>('keep-hue');
+  var neutralMode = neutralModeState[0];
+  var setNeutralMode = neutralModeState[1];
+
   var shadeModeState = useState<ShadeMode>(initialWorkspace.shadeMode);
   var shadeMode = shadeModeState[0];
   var setShadeMode = shadeModeState[1];
@@ -230,8 +234,8 @@ export function App() {
       behavior: anchorBehavior,
       anchorHex: rgbToHex(parsedRgb),
       anchorStep: anchorStep
-    });
-  }, [primaryOklch, parsedRgb, shadeMode, anchorBehavior, anchorStep]);
+    }, neutralMode, harmonyType);
+  }, [primaryOklch, parsedRgb, shadeMode, anchorBehavior, anchorStep, neutralMode, harmonyType]);
 
   var harmony = useMemo(function () {
     if (!primaryOklch) return null;
@@ -239,21 +243,38 @@ export function App() {
   }, [primaryOklch, harmonyType]);
 
   var gradients = useMemo(function () {
-    if (!primaryOklch) return [];
-    return suggestGradients(primaryOklch);
-  }, [primaryOklch]);
+    if (!harmony || !palette) return [];
+    var n50 = palette.neutral.scale.find(function (s) { return s.step === 50; });
+    var n50Lch = n50 ? n50.lch : { l: 0.97, c: 0.005, h: palette.neutral.base.h };
+    return [
+      gradientFromHarmony(harmony),
+      gradientFromHarmonyVivid(harmony),
+      gradientFromPair(palette.primary.base, n50Lch),
+      gradientFromPair(palette.secondary.base, n50Lch),
+      gradientFromPair(palette.accent.base, n50Lch)
+    ];
+  }, [harmony, palette]);
+
+  // Debounce timer ref — we only write to history 800 ms after the last color change
+  var historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     function () {
       if (!parsedRgb) return;
       var normalizedHex = rgbToHex(parsedRgb);
-      setRecentColors(function (previous) {
-        if (previous.length && previous[0] === normalizedHex) return previous;
-        var deduped = previous.filter(function (value) {
-          return value !== normalizedHex;
+      if (historyTimerRef.current !== null) {
+        clearTimeout(historyTimerRef.current);
+      }
+      historyTimerRef.current = setTimeout(function () {
+        historyTimerRef.current = null;
+        setRecentColors(function (previous) {
+          if (previous.length && previous[0] === normalizedHex) return previous;
+          var deduped = previous.filter(function (value) {
+            return value !== normalizedHex;
+          });
+          return [normalizedHex].concat(deduped);
         });
-        return [normalizedHex].concat(deduped).slice(0, 8);
-      });
+      }, 800);
     },
     [parsedRgb]
   );
@@ -420,6 +441,14 @@ export function App() {
           onAnchorBehaviorChange={setAnchorBehavior}
           recentColors={recentColors}
           onSelectRecentColor={setColorInput}
+          onRemoveRecentColor={function (hex) {
+            setRecentColors(function (prev) {
+              return prev.filter(function (c) { return c !== hex; });
+            });
+          }}
+          onClearHistory={function () { setRecentColors([]); }}
+          neutralMode={neutralMode}
+          onNeutralModeChange={setNeutralMode}
         />
       </>
     );
