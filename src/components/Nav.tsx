@@ -103,6 +103,14 @@ export function Nav(props: NavProps) {
             navigate(event, '/app', props.onNavigate);
           }}
         >
+          Scales
+        </a>
+        <a
+          href="/app"
+          onClick={function (event) {
+            navigate(event, '/app', props.onNavigate);
+          }}
+        >
           Open App
         </a>
         <a href="https://github.com/BIAsia/okscale" target="_blank" rel="noreferrer">

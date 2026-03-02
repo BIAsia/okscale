@@ -11,7 +11,7 @@ type LandingPageProps = {
 export function LandingPage(props: LandingPageProps) {
   return (
     <div class="landing-wrap">
-      <LandingColorBanner palette={props.palette} />
+      <LandingColorBanner palette={props.palette} onNavigate={props.onNavigate} />
       <LandingContent onNavigate={props.onNavigate} />
       <LandingHeroType />
       <LandingFooter onNavigate={props.onNavigate} />
@@ -23,7 +23,7 @@ export function LandingPage(props: LandingPageProps) {
 
 type BannerPhase = 'expanded' | 'collapsing' | null;
 
-function LandingColorBanner(props: { palette: FullPalette | null }) {
+function LandingColorBanner(props: { palette: FullPalette | null; onNavigate: (to: string) => void }) {
   var p = props.palette;
   var [activeKey, setActiveKey] = useState<string | null>(null);
   var [phase, setPhase] = useState<BannerPhase>(null);
@@ -71,6 +71,7 @@ function LandingColorBanner(props: { palette: FullPalette | null }) {
             isOtherHidden={isOtherHidden}
             onEnter={function () { handleEnter(e.key); }}
             onLeave={handleLeave}
+            onNavigate={props.onNavigate}
           />
         );
       })}
@@ -86,6 +87,7 @@ function BannerColumn(props: {
   isOtherHidden: boolean;
   onEnter: () => void;
   onLeave: () => void;
+  onNavigate: (to: string) => void;
 }) {
   var entry = props.entry;
   var baseHex = entry ? entry.baseHex : '#cccccc';
@@ -106,6 +108,7 @@ function BannerColumn(props: {
       class={colClass}
       onMouseEnter={props.onEnter}
       onMouseLeave={props.onLeave}
+      onClick={function () { props.onNavigate('/app'); }}
     >
       {/* Solid color layer — visible in stable/collapsing-done state */}
       <div class="landing-banner-solid" style={{ background: baseHex }}>
