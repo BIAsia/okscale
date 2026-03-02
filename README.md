@@ -38,6 +38,31 @@ npm run build
 npm run preview
 ```
 
+## Machine-Facing Usage (AI / MCP / Agents)
+
+- JSON schema contracts live in `schemas/*.schema.json`.
+- Headless CLI is available via `npm run cli -- <command>`.
+- HTTP endpoints are exposed on Vercel via `/api/generate`, `/api/export`, `/api/schema`.
+- MCP stdio server is available via `npm run mcp`.
+- Contract and API examples are documented in `docs/agent-api.md`.
+- Client integration quickstart is in `docs/agent-integration.md`.
+
+Quick examples:
+
+```bash
+# Generate palette JSON
+cat request.json | npm run cli -- generate
+
+# Export tokens/css/tailwind/figma/scss
+cat request.json | npm run cli -- export
+```
+
+Run core tests:
+
+```bash
+npm run test:core
+```
+
 ## Notes
 
 - Core color conversion and gamut mapping live in `src/lib/color.ts`.

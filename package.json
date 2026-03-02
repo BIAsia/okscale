@@ -6,13 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cli": "tsx src/cli/okscale.ts",
+    "mcp": "tsx src/mcp/okscale-mcp.ts",
+    "test:core": "tsx --test src/core/service.test.ts src/server/http.test.ts src/mcp/tools.test.ts src/mcp/client-smoke.test.ts"
   },
   "dependencies": {
-    "preact": "^10.26.4"
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "preact": "^10.26.4",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",
+    "@types/node": "^22.15.30",
+    "tsx": "^4.20.5",
     "typescript": "^5.8.2",
     "vite": "^5.4.11"
   }

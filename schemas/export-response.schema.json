@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://okscale.dev/schemas/export-response.schema.json",
+  "title": "OKScale Export Response",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "algorithmVersion",
+    "format",
+    "namingPreset",
+    "filename",
+    "mediaType",
+    "content",
+    "generate"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "enum": ["1.0"] },
+    "algorithmVersion": { "type": "string" },
+    "format": { "type": "string" },
+    "namingPreset": { "type": "string" },
+    "filename": { "type": "string" },
+    "mediaType": { "type": "string" },
+    "content": { "type": "string" },
+    "generate": { "type": "object" }
+  }
+}

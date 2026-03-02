@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://okscale.dev/schemas/export-request.schema.json",
+  "title": "OKScale Export Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["colorInput", "shadeMode", "harmonyType", "format"],
+  "properties": {
+    "schemaVersion": { "type": "string", "enum": ["1.0"] },
+    "colorInput": { "type": "string", "minLength": 1 },
+    "shadeMode": { "type": "string", "enum": ["none", "warm", "cool", "natural"] },
+    "harmonyType": {
+      "type": "string",
+      "enum": ["complementary", "analogous", "triadic", "split-complementary", "tetradic"]
+    },
+    "anchorBehavior": { "type": "string", "enum": ["preserve-input", "auto-gamut"] },
+    "format": { "type": "string", "enum": ["css", "tailwind", "tokens", "figma", "scss"] },
+    "namingPreset": { "type": "string", "enum": ["numeric", "semantic"] }
+  }
+}
