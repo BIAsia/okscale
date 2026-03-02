@@ -42,6 +42,8 @@ type GeneratorProps = {
 };
 
 type ActiveTab = 'palette' | 'ui-preview' | 'contrast';
+type ExportRoute = 'agent' | 'code' | 'figma';
+type AgentChannel = 'openclaw' | 'cli' | 'http' | 'claude';
 
 var TAB_LABELS: Record<ActiveTab, string> = {
   palette: 'Palette',
@@ -58,6 +60,28 @@ function scaleHex(
     return t.step === step;
   });
   return item ? item.hex : fallback;
+}
+
+function exportFilename(format: ExportFormat, namingPreset: NamingPreset): string {
+  var suffix = namingPreset === 'semantic' ? '-semantic' : '-numeric';
+  if (format === 'tailwind') return 'okscale-tailwind.config' + suffix + '.ts';
+  if (format === 'tokens') return 'okscale-tokens' + suffix + '.json';
+  if (format === 'figma') return 'okscale-figma-variables' + suffix + '.json';
+  if (format === 'scss') return 'okscale-palette' + suffix + '.scss';
+  return 'okscale-palette' + suffix + '.css';
+}
+
+function routeLabel(route: ExportRoute): string {
+  if (route === 'agent') return 'Connect Agent';
+  if (route === 'figma') return 'Import to Figma';
+  return 'Export Code';
+}
+
+function agentChannelLabel(channel: AgentChannel): string {
+  if (channel === 'openclaw') return 'OpenClaw / mcporter';
+  if (channel === 'cli') return 'CLI';
+  if (channel === 'http') return 'HTTP API';
+  return 'Claude Desktop MCP';
 }
 
 function ScaleCircles({ scale }: { scale: { step: number; hex: string }[] }) {
@@ -169,7 +193,15 @@ export function Generator(props: GeneratorProps) {
   var activeTab = tabState[0];
   var setActiveTab = tabState[1];
 
-  // ── Export / naming state ────────────────────────────
+  // ── Export path state ───────────────────────────────
+  var routeState = useState<ExportRoute>('agent');
+  var activeRoute = routeState[0];
+  var setActiveRoute = routeState[1];
+
+  var agentChannelState = useState<AgentChannel>('openclaw');
+  var agentChannel = agentChannelState[0];
+  var setAgentChannel = agentChannelState[1];
+
   var namingState = useState<NamingPreset>('numeric');
   var namingPreset = namingState[0];
   var setNamingPreset = namingState[1];
@@ -178,13 +210,10 @@ export function Generator(props: GeneratorProps) {
   var activeFormat = formatState[0];
   var setActiveFormat = formatState[1];
 
-  var copiedAgentState = useState(false);
-  var copiedAgent = copiedAgentState[0];
-  var setCopiedAgent = copiedAgentState[1];
-
-  var copiedCodeState = useState(false);
-  var copiedCode = copiedCodeState[0];
-  var setCopiedCode = copiedCodeState[1];
+  var copiedActionState = useState('');
+  var copiedAction = copiedActionState[0];
+  var setCopiedAction = copiedActionState[1];
+  var copiedTimerRef = useRef(0);
 
   var exportDrawerState = useState(false);
   var exportDrawerOpen = exportDrawerState[0];
@@ -199,6 +228,14 @@ export function Generator(props: GeneratorProps) {
   var imageTheme = imageThemeState[0];
   var setImageTheme = imageThemeState[1];
 
+  useEffect(function () {
+    return function () {
+      if (copiedTimerRef.current) {
+        window.clearTimeout(copiedTimerRef.current);
+      }
+    };
+  }, []);
+
   // ── Computed export code ─────────────────────────────
   var code = useMemo(
     function () {
@@ -206,6 +243,129 @@ export function Generator(props: GeneratorProps) {
       return formatFullExport(activeFormat, props.palette, namingPreset);
     },
     [activeFormat, namingPreset, props.palette],
+  );
+
+  var exportMeta = useMemo(
+    function () {
+      return {
+        filename: exportFilename(activeFormat, namingPreset),
+        format: activeFormat.toUpperCase(),
+        naming: namingPreset === 'semantic' ? 'Semantic' : 'Numeric',
+      };
+    },
+    [activeFormat, namingPreset],
+  );
+
+  var requestPayload = useMemo(
+    function () {
+      return JSON.stringify(
+        {
+          colorInput: props.colorInput || '#d9ff00',
+          shadeMode: props.shadeMode,
+          harmonyType: props.harmonyType,
+          anchorBehavior: props.anchorBehavior,
+        },
+        null,
+        2,
+      );
+    },
+    [props.anchorBehavior, props.colorInput, props.harmonyType, props.shadeMode],
+  );
+
+  var agentSetupSnippet = useMemo(
+    function () {
+      if (agentChannel === 'openclaw') {
+        return [
+          'mcporter config add okscale \\',
+          '  --command node \\',
+          '  --arg ./node_modules/tsx/dist/cli.mjs \\',
+          '  --arg src/mcp/okscale-mcp.ts \\',
+          '  --scope project',
+        ].join('\n');
+      }
+
+      if (agentChannel === 'cli') {
+        return [
+          'npm install',
+          'npm run cli -- help',
+        ].join('\n');
+      }
+
+      if (agentChannel === 'http') {
+        return [
+          'Deploy this repo to Vercel, then use:',
+          'POST /api/generate',
+          'POST /api/export',
+          'GET  /api/schema',
+        ].join('\n');
+      }
+
+      return [
+        '{',
+        '  "mcpServers": {',
+        '    "okscale": {',
+        '      "command": "node",',
+        '      "args": [',
+        '        "/absolute/path/to/okscale/node_modules/tsx/dist/cli.mjs",',
+        '        "/absolute/path/to/okscale/src/mcp/okscale-mcp.ts"',
+        '      ]',
+        '    }',
+        '  }',
+        '}',
+      ].join('\n');
+    },
+    [agentChannel],
+  );
+
+  var agentTestSnippet = useMemo(
+    function () {
+      if (agentChannel === 'openclaw') {
+        return [
+          'mcporter call okscale.generate_palette ' +
+            "colorInput='" + (props.colorInput || '#d9ff00') + "' " +
+            'shadeMode=' + props.shadeMode + ' ' +
+            'harmonyType=' + props.harmonyType + ' ' +
+            'anchorBehavior=' + props.anchorBehavior + ' ' +
+            '--output json',
+        ].join('\n');
+      }
+
+      if (agentChannel === 'cli') {
+        return [
+          "cat <<'JSON' | npm run cli -- generate",
+          requestPayload,
+          'JSON',
+        ].join('\n');
+      }
+
+      if (agentChannel === 'http') {
+        return [
+          'curl -sS -X POST "https://<your-domain>/api/generate" \\',
+          '  -H "content-type: application/json" \\',
+          "  -d '" + requestPayload.replace(/\n/g, '\\n') + "'",
+        ].join('\n');
+      }
+
+      return [
+        'After adding the MCP config, restart Claude Desktop.',
+        'Then call tool `validate_color` with:',
+        "{ \"colorInput\": \"" + (props.colorInput || '#d9ff00') + "\" }",
+      ].join('\n');
+    },
+    [agentChannel, props.anchorBehavior, props.colorInput, props.harmonyType, props.shadeMode, requestPayload],
+  );
+
+  var agentPromptSnippet = useMemo(
+    function () {
+      return [
+        'Use OKScale tools for this request.',
+        '1) Run generate_palette with these args:',
+        requestPayload,
+        '2) Return primary/secondary/accent/neutral summary.',
+        '3) If I ask for code, run export_tokens or export format as requested.',
+      ].join('\n');
+    },
+    [requestPayload],
   );
 
   // ── Contrast usage matrix ────────────────────────────
@@ -225,27 +385,40 @@ export function Generator(props: GeneratorProps) {
     : [previewHex, previewHex, previewHex];
 
   // ── Actions ──────────────────────────────────────────
-  async function copyAsAgent() {
-    var agentCode = props.palette
-      ? formatFullExport('css', props.palette, namingPreset)
-      : '';
+  function setCopied(action: string) {
+    setCopiedAction(action);
+    if (copiedTimerRef.current) {
+      window.clearTimeout(copiedTimerRef.current);
+    }
+    copiedTimerRef.current = window.setTimeout(function () {
+      setCopiedAction('');
+      copiedTimerRef.current = 0;
+    }, 1400);
+  }
+
+  async function copyText(action: string, text: string) {
     try {
-      await navigator.clipboard.writeText(agentCode);
-      setCopiedAgent(true);
-      window.setTimeout(function () { setCopiedAgent(false); }, 1200);
+      await navigator.clipboard.writeText(text);
+      setCopied(action);
     } catch (_err) {
       window.alert('Clipboard access failed.');
     }
   }
 
-  async function copyCode() {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopiedCode(true);
-      window.setTimeout(function () { setCopiedCode(false); }, 1200);
-    } catch (_err) {
-      window.alert('Clipboard access failed.');
-    }
+  function actionText(action: string, label: string): string {
+    return copiedAction === action ? 'Copied' : label;
+  }
+
+  function downloadCode() {
+    var blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    var href = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = href;
+    a.download = exportMeta.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(href);
   }
 
   function downloadFigma() {
@@ -287,72 +460,176 @@ export function Generator(props: GeneratorProps) {
   function RightSidebarContent() {
     return (
       <>
-        {/* Naming mode toggle */}
         <div class="gen-options-section">
-          {NAMING_PRESETS.map(function (preset) {
-            var label = preset === 'numeric' ? 'Numeric naming' : 'Semantic naming';
+          <span class="gen-section-label">How do you want to use this?</span>
+          {(['agent', 'code', 'figma'] as ExportRoute[]).map(function (route) {
             return (
               <button
-                key={preset}
+                key={route}
                 type="button"
                 class="gen-checkbox-row"
-                onClick={function () { setNamingPreset(preset); }}
+                onClick={function () { setActiveRoute(route); }}
               >
-                <span class="gen-checkbox-mark">
-                  {namingPreset === preset ? '[*]' : '[ ]'}
-                </span>
-                <span>{label}</span>
+                <span class="gen-checkbox-mark">{activeRoute === route ? '[*]' : '[ ]'}</span>
+                <span>{routeLabel(route)}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Format selector */}
-        <div class="gen-options-section">
-          {EXPORT_FORMATS.map(function (fmt) {
-            return (
-              <button
-                key={fmt}
-                type="button"
-                class="gen-checkbox-row"
-                onClick={function () { setActiveFormat(fmt); }}
-              >
-                <span class="gen-checkbox-mark">
-                  {activeFormat === fmt ? '[*]' : '[ ]'}
-                </span>
-                <span>{fmt.toUpperCase()}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Code preview + export buttons */}
         <div class="gen-right-content">
-          <pre class="gen-code-preview">
-            <code>{code.length > 600 ? code.slice(0, 600) + '\n…' : code}</code>
-          </pre>
+          {activeRoute === 'agent' && (
+            <>
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 1</p>
+                <p class="gen-export-step-title">Choose agent connection</p>
+                <div class="gen-export-choice-list">
+                  {(['openclaw', 'cli', 'http', 'claude'] as AgentChannel[]).map(function (channel) {
+                    return (
+                      <button
+                        key={channel}
+                        type="button"
+                        class="gen-checkbox-row"
+                        onClick={function () { setAgentChannel(channel); }}
+                      >
+                        <span class="gen-checkbox-mark">{agentChannel === channel ? '[*]' : '[ ]'}</span>
+                        <span>{agentChannelLabel(channel)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <div class="gen-export-actions">
-            <button
-              type="button"
-              class="gen-sidebar-btn"
-              onClick={copyAsAgent}
-              aria-live="polite"
-            >
-              {copiedAgent ? 'Copied!' : 'Use in coding agent'}
-            </button>
-            <button
-              type="button"
-              class="gen-sidebar-btn"
-              onClick={copyCode}
-              aria-live="polite"
-            >
-              {copiedCode ? 'Copied!' : 'Export Code'}
-            </button>
-            <button type="button" class="gen-sidebar-btn" onClick={downloadFigma}>
-              Export to Figma
-            </button>
-          </div>
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 2</p>
+                <p class="gen-export-step-title">Copy setup</p>
+                <pre class="gen-code-preview gen-code-preview--tight"><code>{agentSetupSnippet}</code></pre>
+                <button
+                  type="button"
+                  class="gen-sidebar-btn"
+                  onClick={function () { copyText('agent-setup', agentSetupSnippet); }}
+                >
+                  {actionText('agent-setup', 'Copy setup')}
+                </button>
+              </div>
+
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 3</p>
+                <p class="gen-export-step-title">Run test call</p>
+                <pre class="gen-code-preview gen-code-preview--tight"><code>{agentTestSnippet}</code></pre>
+                <button
+                  type="button"
+                  class="gen-sidebar-btn"
+                  onClick={function () { copyText('agent-test', agentTestSnippet); }}
+                >
+                  {actionText('agent-test', 'Copy test')}
+                </button>
+              </div>
+
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 4</p>
+                <p class="gen-export-step-title">Prompt template</p>
+                <pre class="gen-code-preview gen-code-preview--tight"><code>{agentPromptSnippet}</code></pre>
+                <button
+                  type="button"
+                  class="gen-sidebar-btn"
+                  onClick={function () { copyText('agent-prompt', agentPromptSnippet); }}
+                >
+                  {actionText('agent-prompt', 'Copy prompt')}
+                </button>
+              </div>
+            </>
+          )}
+
+          {activeRoute === 'code' && (
+            <>
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 1</p>
+                <p class="gen-export-step-title">Choose format</p>
+                <div class="gen-export-choice-list">
+                  {EXPORT_FORMATS.map(function (fmt) {
+                    return (
+                      <button
+                        key={fmt}
+                        type="button"
+                        class="gen-checkbox-row"
+                        onClick={function () { setActiveFormat(fmt); }}
+                      >
+                        <span class="gen-checkbox-mark">{activeFormat === fmt ? '[*]' : '[ ]'}</span>
+                        <span>{fmt.toUpperCase()}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 2</p>
+                <p class="gen-export-step-title">Choose naming</p>
+                <div class="gen-export-choice-list">
+                  {NAMING_PRESETS.map(function (preset) {
+                    var label = preset === 'numeric' ? 'Numeric naming' : 'Semantic naming';
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        class="gen-checkbox-row"
+                        onClick={function () { setNamingPreset(preset); }}
+                      >
+                        <span class="gen-checkbox-mark">{namingPreset === preset ? '[*]' : '[ ]'}</span>
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 3</p>
+                <p class="gen-export-step-title">Output</p>
+                <div class="gen-export-meta">
+                  <span>Filename: {exportMeta.filename}</span>
+                  <span>Format: {exportMeta.format}</span>
+                  <span>Naming: {exportMeta.naming}</span>
+                </div>
+                <pre class="gen-code-preview"><code>{code.length > 900 ? code.slice(0, 900) + '\n…' : code}</code></pre>
+                <div class="gen-export-actions">
+                  <button
+                    type="button"
+                    class="gen-sidebar-btn"
+                    onClick={function () { copyText('code-copy', code); }}
+                  >
+                    {actionText('code-copy', 'Copy code')}
+                  </button>
+                  <button type="button" class="gen-sidebar-btn" onClick={downloadCode}>
+                    Download code
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeRoute === 'figma' && (
+            <>
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 1</p>
+                <p class="gen-export-step-title">Download Variables JSON</p>
+                <button type="button" class="gen-sidebar-btn" onClick={downloadFigma}>
+                  Download JSON
+                </button>
+              </div>
+
+              <div class="gen-export-step">
+                <p class="gen-export-step-kicker">Step 2</p>
+                <p class="gen-export-step-title">Import in Figma</p>
+                <ol class="gen-export-steps-list">
+                  <li>Open Figma Variables panel.</li>
+                  <li>Import JSON and select this file.</li>
+                  <li>Check role groups: primary, secondary, accent, neutral.</li>
+                </ol>
+              </div>
+            </>
+          )}
         </div>
       </>
     );
