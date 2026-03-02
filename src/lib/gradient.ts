@@ -1,4 +1,5 @@
 import { clamp01, gamutMapOklch, oklchToRgb, rgbToHex, rgbToOklch, type Oklch, type RGB } from './color';
+import type { HarmonyResult } from './harmony';
 
 export type GradientStop = { position: number; hex: string; lch: Oklch };
 export type GradientResult = { stops: GradientStop[]; css: string };
@@ -127,4 +128,121 @@ export function suggestGradients(base: Oklch): GradientResult[] {
     generateGradient(baseSafe, analogous, 10),
     generateGradient(baseSafe, triadic, 10)
   ];
+}
+
+/**
+ * Build a gradient whose stops are derived from the active harmony colors.
+ * Between each consecutive pair of harmony colors we interpolate in OKLCH
+ * so the gradient is smooth and perceptually uniform.
+ */
+export function gradientFromHarmony(harmony: HarmonyResult): GradientResult {
+  var colors = harmony.colors;
+  if (colors.length === 0) {
+    return { stops: [], css: '' };
+  }
+  if (colors.length === 1) {
+    var only = colors[0];
+    return {
+      stops: [{ position: 0, hex: only.hex, lch: only.lch }],
+      css: 'linear-gradient(90deg, ' + only.hex + ' 0%, ' + only.hex + ' 100%)'
+    };
+  }
+
+  var MAX_STOPS = 10;
+  var segments = colors.length - 1;
+  // distribute stops evenly across segments, total ≤ MAX_STOPS
+  var stepsPerSegment = Math.max(1, Math.floor((MAX_STOPS - 1) / segments));
+  var allStops: GradientStop[] = [];
+
+  for (var seg = 0; seg < segments; seg++) {
+    var fromColor = colors[seg];
+    var toColor = colors[seg + 1];
+    var segStart = seg / segments;
+    var segEnd = (seg + 1) / segments;
+
+    // include start of this segment; skip it on subsequent segments to avoid duplicates
+    for (var s = (seg === 0 ? 0 : 1); s <= stepsPerSegment; s++) {
+      var t = s / stepsPerSegment;
+      var globalPos = segStart + (segEnd - segStart) * t;
+      var lch = interpolateOklch(fromColor.lch, toColor.lch, t);
+      var rgb = gamutMapOklch(lch);
+      allStops.push({
+        position: globalPos,
+        hex: rgbToHex(rgb),
+        lch: rgbToOklch(rgb)
+      });
+    }
+  }
+
+  // Build anchor stops that sit exactly at each harmony color position,
+  // used for chip rendering (returned separately so UI can read them).
+  var anchorStops: GradientStop[] = colors.map(function (c, i) {
+    return {
+      position: segments === 0 ? 0 : i / segments,
+      hex: c.hex,
+      lch: c.lch
+    };
+  });
+
+  return {
+    stops: anchorStops,
+    css: buildCss(allStops)
+  };
+}
+
+/**
+ * Like gradientFromHarmony but remaps each harmony color into a vivid
+ * lightness band [L_MIN, L_MAX] and raises chroma to MIN_C.
+ * This keeps the gradient perceptually vivid regardless of how dark / muted
+ * the primary color is.
+ */
+export function gradientFromHarmonyVivid(
+  harmony: HarmonyResult,
+  options?: { lMin?: number; lMax?: number; minC?: number }
+): GradientResult {
+  var L_MIN = (options && options.lMin !== undefined) ? options.lMin : 0.60;
+  var L_MAX = (options && options.lMax !== undefined) ? options.lMax : 0.80;
+  var MIN_C = (options && options.minC !== undefined) ? options.minC : 0.2;
+
+  function vividLch(lch: Oklch): Oklch {
+    var l = lch.l < L_MIN ? L_MIN : lch.l > L_MAX ? L_MAX : lch.l;
+    var c = lch.c < MIN_C ? MIN_C : lch.c;
+    return rgbToOklch(gamutMapOklch({ l: l, c: c, h: lch.h }));
+  }
+
+  var vivid: HarmonyResult = {
+    type: harmony.type,
+    colors: harmony.colors.map(function (col) {
+      var lch = vividLch(col.lch);
+      var rgb = gamutMapOklch(lch);
+      return { label: col.label, lch: lch, hex: rgbToHex(rgb) };
+    })
+  };
+
+  return gradientFromHarmony(vivid);
+}
+
+/**
+ * Build a gradient between two arbitrary OKLCH colors.
+ * Returns the two endpoints as anchor stops (for chip display)
+ * and a 10-step OKLCH-interpolated CSS string.
+ */
+export function gradientFromPair(from: Oklch, to: Oklch): GradientResult {
+  var CSS_STEPS = 10;
+  var cssStops: GradientStop[] = [];
+  for (var i = 0; i < CSS_STEPS; i++) {
+    var t = i / (CSS_STEPS - 1);
+    var lch = interpolateOklch(from, to, t);
+    var rgb = gamutMapOklch(lch);
+    cssStops.push({ position: t, hex: rgbToHex(rgb), lch: rgbToOklch(rgb) });
+  }
+  var fromRgb = gamutMapOklch(from);
+  var toRgb = gamutMapOklch(to);
+  return {
+    stops: [
+      { position: 0, hex: rgbToHex(fromRgb), lch: rgbToOklch(fromRgb) },
+      { position: 1, hex: rgbToHex(toRgb),   lch: rgbToOklch(toRgb)   }
+    ],
+    css: buildCss(cssStops)
+  };
 }

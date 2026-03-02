@@ -1,17 +1,17 @@
-import { clamp01, gamutMapOklch, hexToRgb, rgbToHex, rgbToOklch, oklchToRgb, type Oklch } from './color';
+import { clamp01, gamutMapOklch, hexToRgb, maxChromaInGamut, rgbToHex, rgbToOklch, oklchToRgb, type Oklch } from './color';
 
 export var SCALE_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
 var LIGHTNESS_BY_STEP: Record<number, number> = {
-  50: 0.97,
-  100: 0.93,
-  200: 0.86,
-  300: 0.78,
-  400: 0.68,
-  500: 0.58,
-  600: 0.49,
-  700: 0.39,
-  800: 0.3,
+  50: 0.985,
+  100: 0.965,
+  200: 0.93,
+  300: 0.87,
+  400: 0.76,
+  500: 0.63,
+  600: 0.52,
+  700: 0.40,
+  800: 0.30,
   900: 0.22,
   950: 0.15
 };
@@ -28,6 +28,15 @@ export type ScaleAnchorOptions = {
   behavior?: AnchorBehavior;
   anchorStep?: number;
   anchorHex?: string;
+  /** Apply a progressive chroma reduction for light steps (< 500), useful for neutral palettes */
+  lightChromaDecay?: boolean;
+  /**
+   * When set, each step's chroma is computed as `relativeChroma × maxChromaInGamut(stepL, hue)`
+   * instead of the absolute chroma factor approach. This produces a uniform relative saturation
+   * across all steps (including very light/dark ones where the gamut boundary is narrow).
+   * Takes precedence over `lightChromaDecay` when present.
+   */
+  relativeChroma?: number;
 };
 
 function rgbToHsl(rgb: { r: number; g: number; b: number }): { h: number; s: number; l: number } {
@@ -124,16 +133,31 @@ export function generateScale(base: Oklch, anchorOptions?: ScaleAnchorOptions): 
   var maxStep = SCALE_STEPS[SCALE_STEPS.length - 1];
   var distanceDenominator = Math.max(anchorStep - minStep, maxStep - anchorStep) || 1;
 
+  var lightChromaDecay = anchorOptions && anchorOptions.lightChromaDecay;
+  var relativeChroma = anchorOptions && anchorOptions.relativeChroma !== undefined ? anchorOptions.relativeChroma : undefined;
+
   var generated = SCALE_STEPS.map(function (step) {
     var targetL = clamp01(LIGHTNESS_BY_STEP[step] + lOffset * 0.12);
-    var distance = Math.abs(step - anchorStep) / distanceDenominator;
-    var chromaFactor = 1 - distance * 0.32;
-    if (step <= 100) chromaFactor *= 0.75;
-    if (step >= 900) chromaFactor *= 0.8;
+    var stepC: number;
+    if (relativeChroma !== undefined) {
+      // Uniform relative chroma mode: chroma = fraction × gamut boundary at this lightness.
+      // This ensures steps 50/100 (near-white) don't appear more saturated than mid-tones
+      // because the gamut boundary narrows significantly near L=1 and L=0.
+      stepC = maxChromaInGamut(targetL, hue) * relativeChroma;
+    } else {
+      var distance = Math.abs(step - anchorStep) / distanceDenominator;
+      var chromaFactor = 1 - distance * 0.32;
+      if (step <= 100) chromaFactor *= 0.75;
+      if (step >= 900) chromaFactor *= 0.8;
+      if (lightChromaDecay && step < 500) {
+        chromaFactor *= Math.pow(step / 500, 0.7);
+      }
+      stepC = Math.max(0, safeBaseC * chromaFactor);
+    }
 
     var raw = {
       l: targetL,
-      c: Math.max(0, safeBaseC * chromaFactor),
+      c: stepC,
       h: hue
     };
 
