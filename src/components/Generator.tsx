@@ -76,6 +76,15 @@ function routeLabel(route: ExportRoute): string {
   return 'Export Code';
 }
 
+function formatLabel(fmt: string): string {
+  if (fmt === 'css') return 'CSS';
+  if (fmt === 'tailwind') return 'Tailwind';
+  if (fmt === 'tokens') return 'Tokens';
+  if (fmt === 'figma') return 'Figma';
+  if (fmt === 'scss') return 'SCSS';
+  return fmt;
+}
+
 function ScaleCircles({ scale }: { scale: { step: number; hex: string }[] }) {
   const [copiedKey, setCopiedKey] = useState<number | null>(null);
 
@@ -186,7 +195,7 @@ export function Generator(props: GeneratorProps) {
   var setActiveTab = tabState[1];
 
   // ── Export path state ───────────────────────────────
-  var routeState = useState<ExportRoute>('agent');
+  var routeState = useState<ExportRoute | null>('agent');
   var activeRoute = routeState[0];
   var setActiveRoute = routeState[1];
 
@@ -377,28 +386,20 @@ export function Generator(props: GeneratorProps) {
 
   function RightSidebarContent() {
     return (
-      <>
-        <div class="gen-options-section">
-          <span class="gen-section-label">How do you want to use this?</span>
-          {(['agent', 'code', 'figma'] as ExportRoute[]).map(function (route) {
-            return (
-              <button
-                key={route}
-                type="button"
-                class="gen-checkbox-row"
-                onClick={function () { setActiveRoute(route); }}
-              >
-                <span class="gen-checkbox-mark">{activeRoute === route ? '[*]' : '[ ]'}</span>
-                <span>{routeLabel(route)}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div class="gen-right-content">
+      <div class="gen-accordion">
+        {/* ── Agent section ── */}
+        <div class="gen-accordion-section">
+          <button
+            type="button"
+            class="gen-accordion-header"
+            aria-expanded={activeRoute === 'agent'}
+            onClick={function () { setActiveRoute(activeRoute === 'agent' ? null : 'agent'); }}
+          >
+            <span>Connect Agent</span>
+            <span class="gen-accordion-chevron">{activeRoute === 'agent' ? '▲' : '▼'}</span>
+          </button>
           {activeRoute === 'agent' && (
-            <div class="gen-export-step">
-              <p class="gen-export-step-title">Connect Agent</p>
+            <div class="gen-accordion-body">
               <p class="gen-export-hint">Copy one of these and run it in your agent workflow.</p>
               <pre class="gen-code-preview gen-code-preview--tight"><code>{agentQuickCommand}</code></pre>
               <div class="gen-export-actions">
@@ -409,6 +410,10 @@ export function Generator(props: GeneratorProps) {
                 >
                   {actionText('agent-command', 'Copy command')}
                 </button>
+              </div>
+              <p class="gen-export-hint">Or paste this prompt to your agent:</p>
+              <p class="gen-prompt-preview">{agentPromptSnippet}</p>
+              <div class="gen-export-actions">
                 <button
                   type="button"
                   class="gen-sidebar-btn"
@@ -419,71 +424,81 @@ export function Generator(props: GeneratorProps) {
               </div>
             </div>
           )}
+        </div>
 
+        {/* ── Code section ── */}
+        <div class="gen-accordion-section">
+          <button
+            type="button"
+            class="gen-accordion-header"
+            aria-expanded={activeRoute === 'code'}
+            onClick={function () { setActiveRoute(activeRoute === 'code' ? null : 'code'); }}
+          >
+            <span>Export Code</span>
+            <span class="gen-accordion-chevron">{activeRoute === 'code' ? '▲' : '▼'}</span>
+          </button>
           {activeRoute === 'code' && (
-            <>
-              <div class="gen-export-step">
-                <p class="gen-export-step-title">Export options</p>
-                <div class="gen-export-choice-list">
-                  {EXPORT_FORMATS.map(function (fmt) {
-                    return (
-                      <button
-                        key={fmt}
-                        type="button"
-                        class="gen-checkbox-row"
-                        onClick={function () { setActiveFormat(fmt); }}
-                      >
-                        <span class="gen-checkbox-mark">{activeFormat === fmt ? '[*]' : '[ ]'}</span>
-                        <span>{fmt.toUpperCase()}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div class="gen-export-choice-list">
-                  {NAMING_PRESETS.map(function (preset) {
-                    var label = preset === 'numeric' ? 'Numeric naming' : 'Semantic naming';
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        class="gen-checkbox-row"
-                        onClick={function () { setNamingPreset(preset); }}
-                      >
-                        <span class="gen-checkbox-mark">{namingPreset === preset ? '[*]' : '[ ]'}</span>
-                        <span>{label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+            <div class="gen-accordion-body">
+              <div class="gen-option-chips">
+                {EXPORT_FORMATS.map(function (fmt) {
+                  return (
+                    <button
+                      key={fmt}
+                      type="button"
+                      class={'gen-color-chip' + (activeFormat === fmt ? ' active' : '')}
+                      onClick={function () { setActiveFormat(fmt); }}
+                    >
+                      {formatLabel(fmt)}
+                    </button>
+                  );
+                })}
               </div>
-
-              <div class="gen-export-step">
-                <p class="gen-export-step-title">Output</p>
-                <div class="gen-export-meta">
-                  <span>Filename: {exportMeta.filename}</span>
-                  <span>Format: {exportMeta.format}</span>
-                  <span>Naming: {exportMeta.naming}</span>
-                </div>
-                <pre class="gen-code-preview"><code>{code.length > 900 ? code.slice(0, 900) + '\n…' : code}</code></pre>
-                <div class="gen-export-actions">
-                  <button
-                    type="button"
-                    class="gen-sidebar-btn"
-                    onClick={function () { copyText('code-copy', code); }}
-                  >
-                    {actionText('code-copy', 'Copy code')}
-                  </button>
-                  <button type="button" class="gen-sidebar-btn" onClick={downloadCode}>
-                    Download code
-                  </button>
-                </div>
+              <div class="gen-export-choice-list">
+                {NAMING_PRESETS.map(function (preset) {
+                  var label = preset === 'numeric' ? 'Numeric naming' : 'Semantic naming';
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      class="gen-checkbox-row"
+                      onClick={function () { setNamingPreset(preset); }}
+                    >
+                      <span class="gen-checkbox-mark">{namingPreset === preset ? '[*]' : '[ ]'}</span>
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            </>
+              <pre class="gen-code-preview"><code>{code.length > 900 ? code.slice(0, 900) + '\n…' : code}</code></pre>
+              <div class="gen-export-actions">
+                <button
+                  type="button"
+                  class="gen-sidebar-btn"
+                  onClick={function () { copyText('code-copy', code); }}
+                >
+                  {actionText('code-copy', 'Copy code')}
+                </button>
+                <button type="button" class="gen-sidebar-btn" onClick={downloadCode}>
+                  Download code
+                </button>
+              </div>
+            </div>
           )}
+        </div>
 
+        {/* ── Figma section ── */}
+        <div class="gen-accordion-section">
+          <button
+            type="button"
+            class="gen-accordion-header"
+            aria-expanded={activeRoute === 'figma'}
+            onClick={function () { setActiveRoute(activeRoute === 'figma' ? null : 'figma'); }}
+          >
+            <span>Import to Figma</span>
+            <span class="gen-accordion-chevron">{activeRoute === 'figma' ? '▲' : '▼'}</span>
+          </button>
           {activeRoute === 'figma' && (
-            <div class="gen-export-step">
-              <p class="gen-export-step-title">Import to Figma</p>
+            <div class="gen-accordion-body">
               <button type="button" class="gen-sidebar-btn" onClick={downloadFigma}>
                 Download JSON
               </button>
@@ -495,7 +510,7 @@ export function Generator(props: GeneratorProps) {
             </div>
           )}
         </div>
-      </>
+      </div>
     );
   }
 
