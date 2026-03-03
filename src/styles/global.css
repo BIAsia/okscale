@@ -2753,17 +2753,48 @@ a:focus-visible {
   border-top: none;
 }
 
-/* Content wrapper for code preview + export buttons */
+/* Content wrapper for route-specific export flow */
 .gen-right-content {
   flex: 1;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+}
+
+.gen-export-step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--ok-neutral-200);
+  border-radius: 8px;
+  background: var(--ok-neutral-50);
+}
+
+.gen-export-step-kicker {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ok-neutral-400);
+  text-transform: uppercase;
+}
+
+.gen-export-step-title {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ok-neutral-950);
+}
+
+.gen-export-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .gen-code-preview {
-  flex: 1;
   min-height: 100px;
   max-height: 260px;
   background: var(--ok-neutral-100);
@@ -2776,6 +2807,31 @@ a:focus-visible {
   overflow: auto;
   white-space: pre;
   word-break: normal;
+}
+
+.gen-code-preview--tight {
+  min-height: 80px;
+  max-height: 160px;
+}
+
+.gen-export-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ok-neutral-500);
+}
+
+.gen-export-steps-list {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ok-neutral-700);
 }
 
 .gen-export-actions {
