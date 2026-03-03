@@ -43,7 +43,6 @@ type GeneratorProps = {
 
 type ActiveTab = 'palette' | 'ui-preview' | 'contrast';
 type ExportRoute = 'agent' | 'code' | 'figma';
-type AgentChannel = 'openclaw' | 'cli' | 'http' | 'claude';
 
 var TAB_LABELS: Record<ActiveTab, string> = {
   palette: 'Palette',
@@ -75,13 +74,6 @@ function routeLabel(route: ExportRoute): string {
   if (route === 'agent') return 'Connect Agent';
   if (route === 'figma') return 'Import to Figma';
   return 'Export Code';
-}
-
-function agentChannelLabel(channel: AgentChannel): string {
-  if (channel === 'openclaw') return 'OpenClaw / mcporter';
-  if (channel === 'cli') return 'CLI';
-  if (channel === 'http') return 'HTTP API';
-  return 'Claude Desktop MCP';
 }
 
 function ScaleCircles({ scale }: { scale: { step: number; hex: string }[] }) {
@@ -198,10 +190,6 @@ export function Generator(props: GeneratorProps) {
   var activeRoute = routeState[0];
   var setActiveRoute = routeState[1];
 
-  var agentChannelState = useState<AgentChannel>('openclaw');
-  var agentChannel = agentChannelState[0];
-  var setAgentChannel = agentChannelState[1];
-
   var namingState = useState<NamingPreset>('numeric');
   var namingPreset = namingState[0];
   var setNamingPreset = namingState[1];
@@ -272,97 +260,27 @@ export function Generator(props: GeneratorProps) {
     [props.anchorBehavior, props.colorInput, props.harmonyType, props.shadeMode],
   );
 
-  var agentSetupSnippet = useMemo(
+  var agentQuickCommand = useMemo(
     function () {
-      if (agentChannel === 'openclaw') {
-        return [
-          'mcporter config add okscale \\',
-          '  --command node \\',
-          '  --arg ./node_modules/tsx/dist/cli.mjs \\',
-          '  --arg src/mcp/okscale-mcp.ts \\',
-          '  --scope project',
-        ].join('\n');
-      }
-
-      if (agentChannel === 'cli') {
-        return [
-          'npm install',
-          'npm run cli -- help',
-        ].join('\n');
-      }
-
-      if (agentChannel === 'http') {
-        return [
-          'Deploy this repo to Vercel, then use:',
-          'POST /api/generate',
-          'POST /api/export',
-          'GET  /api/schema',
-        ].join('\n');
-      }
-
       return [
-        '{',
-        '  "mcpServers": {',
-        '    "okscale": {',
-        '      "command": "node",',
-        '      "args": [',
-        '        "/absolute/path/to/okscale/node_modules/tsx/dist/cli.mjs",',
-        '        "/absolute/path/to/okscale/src/mcp/okscale-mcp.ts"',
-        '      ]',
-        '    }',
-        '  }',
-        '}',
+        'mcporter call okscale.generate_palette ' +
+          "colorInput='" + (props.colorInput || '#d9ff00') + "' " +
+          'shadeMode=' + props.shadeMode + ' ' +
+          'harmonyType=' + props.harmonyType + ' ' +
+          'anchorBehavior=' + props.anchorBehavior + ' ' +
+          '--output json',
       ].join('\n');
     },
-    [agentChannel],
-  );
-
-  var agentTestSnippet = useMemo(
-    function () {
-      if (agentChannel === 'openclaw') {
-        return [
-          'mcporter call okscale.generate_palette ' +
-            "colorInput='" + (props.colorInput || '#d9ff00') + "' " +
-            'shadeMode=' + props.shadeMode + ' ' +
-            'harmonyType=' + props.harmonyType + ' ' +
-            'anchorBehavior=' + props.anchorBehavior + ' ' +
-            '--output json',
-        ].join('\n');
-      }
-
-      if (agentChannel === 'cli') {
-        return [
-          "cat <<'JSON' | npm run cli -- generate",
-          requestPayload,
-          'JSON',
-        ].join('\n');
-      }
-
-      if (agentChannel === 'http') {
-        return [
-          'curl -sS -X POST "https://<your-domain>/api/generate" \\',
-          '  -H "content-type: application/json" \\',
-          "  -d '" + requestPayload.replace(/\n/g, '\\n') + "'",
-        ].join('\n');
-      }
-
-      return [
-        'After adding the MCP config, restart Claude Desktop.',
-        'Then call tool `validate_color` with:',
-        "{ \"colorInput\": \"" + (props.colorInput || '#d9ff00') + "\" }",
-      ].join('\n');
-    },
-    [agentChannel, props.anchorBehavior, props.colorInput, props.harmonyType, props.shadeMode, requestPayload],
+    [props.anchorBehavior, props.colorInput, props.harmonyType, props.shadeMode],
   );
 
   var agentPromptSnippet = useMemo(
     function () {
       return [
-        'Use OKScale tools for this request.',
-        '1) Run generate_palette with these args:',
+        'Use OKScale to generate a color system.',
+        'Run generate_palette with this payload:',
         requestPayload,
-        '2) Return primary/secondary/accent/neutral summary.',
-        '3) If I ask for code, run export_tokens or export format as requested.',
+        'Then summarize primary/secondary/accent/neutral in plain language.',
       ].join('\n');
     },
     [requestPayload],
@@ -479,57 +397,18 @@ export function Generator(props: GeneratorProps) {
 
         <div class="gen-right-content">
           {activeRoute === 'agent' && (
-            <>
-              <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 1</p>
-                <p class="gen-export-step-title">Choose agent connection</p>
-                <div class="gen-export-choice-list">
-                  {(['openclaw', 'cli', 'http', 'claude'] as AgentChannel[]).map(function (channel) {
-                    return (
-                      <button
-                        key={channel}
-                        type="button"
-                        class="gen-checkbox-row"
-                        onClick={function () { setAgentChannel(channel); }}
-                      >
-                        <span class="gen-checkbox-mark">{agentChannel === channel ? '[*]' : '[ ]'}</span>
-                        <span>{agentChannelLabel(channel)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 2</p>
-                <p class="gen-export-step-title">Copy setup</p>
-                <pre class="gen-code-preview gen-code-preview--tight"><code>{agentSetupSnippet}</code></pre>
+            <div class="gen-export-step">
+              <p class="gen-export-step-title">Connect Agent</p>
+              <p class="gen-export-hint">Copy one of these and run it in your agent workflow.</p>
+              <pre class="gen-code-preview gen-code-preview--tight"><code>{agentQuickCommand}</code></pre>
+              <div class="gen-export-actions">
                 <button
                   type="button"
                   class="gen-sidebar-btn"
-                  onClick={function () { copyText('agent-setup', agentSetupSnippet); }}
+                  onClick={function () { copyText('agent-command', agentQuickCommand); }}
                 >
-                  {actionText('agent-setup', 'Copy setup')}
+                  {actionText('agent-command', 'Copy command')}
                 </button>
-              </div>
-
-              <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 3</p>
-                <p class="gen-export-step-title">Run test call</p>
-                <pre class="gen-code-preview gen-code-preview--tight"><code>{agentTestSnippet}</code></pre>
-                <button
-                  type="button"
-                  class="gen-sidebar-btn"
-                  onClick={function () { copyText('agent-test', agentTestSnippet); }}
-                >
-                  {actionText('agent-test', 'Copy test')}
-                </button>
-              </div>
-
-              <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 4</p>
-                <p class="gen-export-step-title">Prompt template</p>
-                <pre class="gen-code-preview gen-code-preview--tight"><code>{agentPromptSnippet}</code></pre>
                 <button
                   type="button"
                   class="gen-sidebar-btn"
@@ -538,14 +417,13 @@ export function Generator(props: GeneratorProps) {
                   {actionText('agent-prompt', 'Copy prompt')}
                 </button>
               </div>
-            </>
+            </div>
           )}
 
           {activeRoute === 'code' && (
             <>
               <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 1</p>
-                <p class="gen-export-step-title">Choose format</p>
+                <p class="gen-export-step-title">Export options</p>
                 <div class="gen-export-choice-list">
                   {EXPORT_FORMATS.map(function (fmt) {
                     return (
@@ -561,11 +439,6 @@ export function Generator(props: GeneratorProps) {
                     );
                   })}
                 </div>
-              </div>
-
-              <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 2</p>
-                <p class="gen-export-step-title">Choose naming</p>
                 <div class="gen-export-choice-list">
                   {NAMING_PRESETS.map(function (preset) {
                     var label = preset === 'numeric' ? 'Numeric naming' : 'Semantic naming';
@@ -585,7 +458,6 @@ export function Generator(props: GeneratorProps) {
               </div>
 
               <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 3</p>
                 <p class="gen-export-step-title">Output</p>
                 <div class="gen-export-meta">
                   <span>Filename: {exportMeta.filename}</span>
@@ -610,25 +482,17 @@ export function Generator(props: GeneratorProps) {
           )}
 
           {activeRoute === 'figma' && (
-            <>
-              <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 1</p>
-                <p class="gen-export-step-title">Download Variables JSON</p>
-                <button type="button" class="gen-sidebar-btn" onClick={downloadFigma}>
-                  Download JSON
-                </button>
-              </div>
-
-              <div class="gen-export-step">
-                <p class="gen-export-step-kicker">Step 2</p>
-                <p class="gen-export-step-title">Import in Figma</p>
-                <ol class="gen-export-steps-list">
-                  <li>Open Figma Variables panel.</li>
-                  <li>Import JSON and select this file.</li>
-                  <li>Check role groups: primary, secondary, accent, neutral.</li>
-                </ol>
-              </div>
-            </>
+            <div class="gen-export-step">
+              <p class="gen-export-step-title">Import to Figma</p>
+              <button type="button" class="gen-sidebar-btn" onClick={downloadFigma}>
+                Download JSON
+              </button>
+              <ol class="gen-export-steps-list">
+                <li>Open Figma Variables panel.</li>
+                <li>Import this JSON file.</li>
+                <li>Check role groups: primary, secondary, accent, neutral.</li>
+              </ol>
+            </div>
           )}
         </div>
       </>
