@@ -108,6 +108,15 @@ function normalizePathname(pathname: string): '/' | '/app' | '/docs' {
   return '/';
 }
 
+function scrollToHashTarget(hash: string): boolean {
+  if (!hash || hash.length < 2) return false;
+  var id = decodeURIComponent(hash.slice(1));
+  var el = document.getElementById(id);
+  if (!el) return false;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return true;
+}
+
 function fallbackWorkspaceState(): WorkspaceShareState {
   return {
     colorInput: '#d9ff00',
@@ -308,7 +317,8 @@ export function App() {
 
   useEffect(function () {
     function onPopState() {
-      setRoute(normalizePathname(window.location.pathname));
+      var nextRoute = normalizePathname(window.location.pathname);
+      setRoute(nextRoute);
       var fromUrl = decodeWorkspaceState(window.location.search);
       if (fromUrl) {
         setColorInput(fromUrl.colorInput);
@@ -316,7 +326,11 @@ export function App() {
         setHarmonyType(fromUrl.harmonyType);
         setAnchorBehavior(fromUrl.anchorBehavior);
       }
-      window.scrollTo({ top: 0 });
+
+      window.setTimeout(function () {
+        if (nextRoute === '/docs' && scrollToHashTarget(window.location.hash)) return;
+        window.scrollTo({ top: 0 });
+      }, 50);
     }
 
     window.addEventListener('popstate', onPopState);
@@ -371,13 +385,45 @@ export function App() {
   );
 
   function navigate(to: string) {
-    var next = normalizePathname(to);
-    if (next !== normalizePathname(window.location.pathname)) {
-      window.history.pushState({}, '', next);
+    var raw = to || '/';
+    var hashIndex = raw.indexOf('#');
+    var pathPart = hashIndex >= 0 ? raw.slice(0, hashIndex) : raw;
+    var hashPart = hashIndex >= 0 ? raw.slice(hashIndex) : '';
+    var nextRoute = normalizePathname(pathPart || '/');
+    var nextUrl = nextRoute + (nextRoute === '/docs' ? hashPart : '');
+    var currentUrl = window.location.pathname + window.location.hash;
+
+    if (nextUrl !== currentUrl) {
+      window.history.pushState({}, '', nextUrl);
     }
-    setRoute(next);
+
+    setRoute(nextRoute);
+
+    if (nextRoute === '/docs' && hashPart) {
+      window.setTimeout(function () {
+        if (!scrollToHashTarget(hashPart)) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 80);
+      return;
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  useEffect(
+    function () {
+      if (route !== '/docs') return;
+      if (!window.location.hash) return;
+      var t = window.setTimeout(function () {
+        scrollToHashTarget(window.location.hash);
+      }, 100);
+      return function () {
+        window.clearTimeout(t);
+      };
+    },
+    [route]
+  );
 
   useEffect(
     function () {

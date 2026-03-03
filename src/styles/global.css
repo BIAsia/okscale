@@ -268,28 +268,33 @@ body {
   padding-bottom: 24px;
 }
 
-.docs-search-row {
+.docs-mini-nav {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
-.docs-search-input {
-  flex: 1;
-  min-width: 280px;
-  border: 1px solid var(--ok-neutral-300);
-  border-radius: 10px;
-  padding: 12px 14px;
+.docs-mini-link {
+  color: var(--ok-neutral-900);
+  text-decoration: none;
+  border: 1px solid var(--ok-neutral-200);
+  border-radius: 999px;
+  padding: 6px 10px;
   background: var(--ok-neutral-50);
+}
+
+.docs-mini-link:hover {
+  border-color: var(--ok-highlight-text);
+  color: var(--ok-highlight-text);
 }
 
 .docs-layout-section {
   padding-top: 16px;
 }
 
-.docs-layout {
+.docs-hub-layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -322,14 +327,42 @@ body {
   color: var(--ok-highlight-text);
 }
 
-.docs-content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.docs-hub-article {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
 }
 
-.docs-content-grid .code-block {
-  max-height: 280px;
+.docs-hub-block {
+  scroll-margin-top: 120px;
+  border-bottom: 1px solid var(--ok-neutral-200);
+  padding-bottom: 16px;
+}
+
+.docs-hub-block:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.docs-hub-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--ok-neutral-700);
+}
+
+.docs-hub-code {
+  margin-top: 8px;
+  max-height: 320px;
+}
+
+.docs-hub-block p {
+  margin: 0;
 }
 
 .workspace-layout-section {
@@ -952,8 +985,7 @@ a:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .docs-layout,
-  .docs-content-grid {
+  .docs-hub-layout {
     grid-template-columns: 1fr;
   }
 
@@ -961,9 +993,13 @@ a:focus-visible {
     position: static;
   }
 
-  .docs-search-input {
-    min-width: 0;
-    width: 100%;
+  .docs-mini-nav {
+    gap: 6px;
+  }
+
+  .docs-mini-link {
+    font-size: 11px;
+    padding: 5px 8px;
   }
 
   .compact-compare-grid {
