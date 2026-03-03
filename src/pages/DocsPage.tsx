@@ -2,6 +2,12 @@ import { useEffect, useState } from 'preact/hooks';
 import { Footer } from '../components/Footer';
 import { Nav } from '../components/Nav';
 
+import '@shoelace-style/shoelace/dist/themes/light.css';
+import '@shoelace-style/shoelace/dist/components/badge/badge.js';
+import '@shoelace-style/shoelace/dist/components/button/button.js';
+import '@shoelace-style/shoelace/dist/components/card/card.js';
+import '@shoelace-style/shoelace/dist/components/divider/divider.js';
+
 type DocsPageProps = {
   onNavigate: (to: string) => void;
 };
@@ -173,13 +179,16 @@ export function DocsPage(props: DocsPageProps) {
             {HUB_SECTIONS.map(function (section) {
               var active = section.id === activeId;
               return (
-                <a
+                <sl-button
                   key={section.id}
                   href={'#' + section.id}
-                  class={'docs-mini-link text-code' + (active ? ' active' : '')}
+                  size="small"
+                  pill
+                  variant={active ? 'primary' : 'default'}
+                  class="docs-chip"
                 >
                   {section.title}
-                </a>
+                </sl-button>
               );
             })}
           </nav>
@@ -188,40 +197,44 @@ export function DocsPage(props: DocsPageProps) {
 
       <section class="section docs-layout-section">
         <div class="section-inner docs-shell">
-          <aside class="card docs-sidebar docs-sidebar--left">
+          <sl-card class="docs-panel docs-sidebar docs-sidebar--left">
             <h2 class="text-body-lg">On this page</h2>
             <div class="docs-nav-list">
               {HUB_SECTIONS.map(function (section) {
                 var active = section.id === activeId;
                 return (
-                  <a
+                  <sl-button
                     key={section.id}
                     href={'#' + section.id}
-                    class={'docs-nav-link text-code' + (active ? ' active' : '')}
+                    size="small"
+                    variant={active ? 'primary' : 'text'}
+                    class="docs-nav-item"
                   >
                     {section.title}
-                  </a>
+                  </sl-button>
                 );
               })}
             </div>
-          </aside>
+          </sl-card>
 
-          <article class="card docs-main">
-            {HUB_SECTIONS.map(function (section) {
+          <sl-card class="docs-panel docs-main">
+            {HUB_SECTIONS.map(function (section, idx) {
               return (
                 <section key={section.id} id={section.id} class="docs-section-block">
+                  {idx > 0 ? <sl-divider></sl-divider> : null}
+
                   <div class="docs-section-head">
                     <h2 class="text-sub">{section.title}</h2>
-                    <a class="docs-anchor-link text-code" href={'#' + section.id} aria-label={'Link to ' + section.title}>
-                      #
+                    <a class="docs-anchor-link" href={'#' + section.id} aria-label={'Link to ' + section.title}>
+                      <sl-badge pill variant="neutral" class="docs-anchor-badge">#</sl-badge>
                     </a>
                   </div>
 
                   <p class="text-body text-muted">{section.summary}</p>
 
-                  {section.paragraphs.map(function (p, idx) {
+                  {section.paragraphs.map(function (p, pidx) {
                     return (
-                      <p key={section.id + '-p-' + idx} class="text-body docs-paragraph">
+                      <p key={section.id + '-p-' + pidx} class="text-body docs-paragraph">
                         {p}
                       </p>
                     );
@@ -229,8 +242,8 @@ export function DocsPage(props: DocsPageProps) {
 
                   {section.bullets && section.bullets.length > 0 && (
                     <ul class="docs-list">
-                      {section.bullets.map(function (item, idx) {
-                        return <li key={section.id + '-b-' + idx}>{item}</li>;
+                      {section.bullets.map(function (item, bidx) {
+                        return <li key={section.id + '-b-' + bidx}>{item}</li>;
                       })}
                     </ul>
                   )}
@@ -245,20 +258,20 @@ export function DocsPage(props: DocsPageProps) {
                 </section>
               );
             })}
-          </article>
+          </sl-card>
 
-          <aside class="card docs-sidebar docs-sidebar--right">
+          <sl-card class="docs-panel docs-sidebar docs-sidebar--right">
             <h2 class="text-body-lg">Quick Actions</h2>
             <p class="text-body text-muted">Jump into product workflows directly.</p>
             <div class="docs-quick-actions">
-              <button type="button" class="btn btn-primary" onClick={function () { props.onNavigate('/app'); }}>
+              <sl-button variant="primary" onClick={function () { props.onNavigate('/app'); }}>
                 Open Generator
-              </button>
-              <button type="button" class="btn btn-secondary" onClick={function () { props.onNavigate('/'); }}>
+              </sl-button>
+              <sl-button variant="default" onClick={function () { props.onNavigate('/'); }}>
                 Back to Landing
-              </button>
+              </sl-button>
             </div>
-          </aside>
+          </sl-card>
         </div>
       </section>
 
