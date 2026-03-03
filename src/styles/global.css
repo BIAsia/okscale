@@ -1940,18 +1940,18 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
-  padding: 5px 8px;
+  height: 28px;
+  padding: 0 8px;
   border: 1px solid var(--ok-neutral-200);
   border-radius: 8px;
-  background: none;
+  background: var(--ok-neutral-50);
+  overflow: hidden;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-weight: 500;
   font-size: 12px;
   letter-spacing: -0.14px;
-  color: var(--ok-neutral-950);
-  transition: border-color 0.15s;
+  color: var(--ok-neutral-600);
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .gen-color-chip:hover {
@@ -1959,7 +1959,8 @@ a:focus-visible {
 }
 
 .gen-color-chip.active {
-  border-color: var(--ok-neutral-950);
+  border-color: var(--ok-neutral-400);
+  color: var(--ok-primary-950);
 }
 
 .gen-sidebar-actions {
@@ -1994,6 +1995,18 @@ a:focus-visible {
 .gen-sidebar-btn[aria-disabled='true'] {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.gen-sidebar-btn--primary {
+  background: var(--ok-primary-950);
+  border-color: var(--ok-primary-950);
+  color: var(--ok-primary-50);
+}
+
+.gen-sidebar-btn--primary:hover {
+  background: var(--ok-primary-800);
+  border-color: var(--ok-primary-800);
+  color: var(--ok-primary-50);
 }
 
 /* Section label inside sidebar */
@@ -2770,8 +2783,7 @@ a:focus-visible {
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--ok-neutral-950);
+  color: var(--ok-neutral-500);
   text-align: left;
 }
 
@@ -2780,7 +2792,7 @@ a:focus-visible {
 }
 
 .gen-accordion-header[aria-expanded='true'] {
-  color: var(--ok-primary-600);
+  color: var(--ok-neutral-950);
 }
 
 .gen-accordion-chevron {
@@ -2799,7 +2811,7 @@ a:focus-visible {
 .gen-export-hint {
   margin: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--ok-neutral-500);
 }
@@ -2807,7 +2819,7 @@ a:focus-visible {
 .gen-prompt-preview {
   margin: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--ok-neutral-500);
   white-space: pre-wrap;
@@ -2867,8 +2879,8 @@ a:focus-visible {
   line-height: 1.6;
   color: var(--ok-neutral-600);
   overflow: auto;
-  white-space: pre;
-  word-break: normal;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .gen-code-preview--tight {

@@ -400,18 +400,18 @@ export function Generator(props: GeneratorProps) {
           </button>
           {activeRoute === 'agent' && (
             <div class="gen-accordion-body">
-              <p class="gen-export-hint">Copy one of these and run it in your agent workflow.</p>
+              <p class="gen-export-hint">Copy and run in your agent:</p>
               <pre class="gen-code-preview gen-code-preview--tight"><code>{agentQuickCommand}</code></pre>
               <div class="gen-export-actions">
                 <button
                   type="button"
-                  class="gen-sidebar-btn"
+                  class="gen-sidebar-btn gen-sidebar-btn--primary"
                   onClick={function () { copyText('agent-command', agentQuickCommand); }}
                 >
                   {actionText('agent-command', 'Copy command')}
                 </button>
               </div>
-              <p class="gen-export-hint">Or paste this prompt to your agent:</p>
+              <p class="gen-export-hint">Or paste this prompt to your claw:</p>
               <p class="gen-prompt-preview">{agentPromptSnippet}</p>
               <div class="gen-export-actions">
                 <button
@@ -473,7 +473,7 @@ export function Generator(props: GeneratorProps) {
               <div class="gen-export-actions">
                 <button
                   type="button"
-                  class="gen-sidebar-btn"
+                  class="gen-sidebar-btn gen-sidebar-btn--primary"
                   onClick={function () { copyText('code-copy', code); }}
                 >
                   {actionText('code-copy', 'Copy code')}
@@ -499,7 +499,7 @@ export function Generator(props: GeneratorProps) {
           </button>
           {activeRoute === 'figma' && (
             <div class="gen-accordion-body">
-              <button type="button" class="gen-sidebar-btn" onClick={downloadFigma}>
+              <button type="button" class="gen-sidebar-btn gen-sidebar-btn--primary" onClick={downloadFigma}>
                 Download JSON
               </button>
               <ol class="gen-export-steps-list">
