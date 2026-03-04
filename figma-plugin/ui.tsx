@@ -1,8 +1,8 @@
 import { render } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { contrastRatio, ratioGrade } from '../src/lib/contrast';
 import { formatFullExport, type ExportFormat, type NamingPreset } from '../src/lib/export';
 import { extractThemeFromImageFile } from '../src/lib/image-theme';
-import { contrastRatio } from '../src/lib/contrast';
 import { oklchToRgb, parseColorInput, rgbToHex, rgbToOklch } from '../src/lib/color';
 import type { PluginGenerated, PluginSettings } from './shared';
 
@@ -24,6 +24,10 @@ var HISTORY_KEY = 'okscale.figma.history.v1';
 var EXPORT_FORMATS: ExportFormat[] = ['css', 'tailwind', 'tokens', 'figma', 'scss'];
 var NAMING_PRESETS: NamingPreset[] = ['numeric', 'semantic'];
 
+function postMessage(msg: UiOutbound) {
+  window.parent.postMessage({ pluginMessage: msg }, '*');
+}
+
 function roleArray(generated: PluginGenerated) {
   return [
     generated.palette.primary,
@@ -31,10 +35,6 @@ function roleArray(generated: PluginGenerated) {
     generated.palette.accent,
     generated.palette.neutral,
   ];
-}
-
-function postMessage(msg: UiOutbound) {
-  window.parent.postMessage({ pluginMessage: msg }, '*');
 }
 
 function loadHistory(): string[] {
@@ -80,6 +80,15 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+function exportFilename(format: ExportFormat, namingPreset: NamingPreset): string {
+  var suffix = namingPreset === 'semantic' ? '-semantic' : '-numeric';
+  if (format === 'tailwind') return 'okscale-tailwind.config' + suffix + '.ts';
+  if (format === 'tokens') return 'okscale-tokens' + suffix + '.json';
+  if (format === 'figma') return 'okscale-figma-variables' + suffix + '.json';
+  if (format === 'scss') return 'okscale-palette' + suffix + '.scss';
+  return 'okscale-palette' + suffix + '.css';
+}
+
 function scaleHex(
   role: { scale: Array<{ step: number; hex: string }> },
   step: number,
@@ -91,13 +100,11 @@ function scaleHex(
   return fallback;
 }
 
-function exportFilename(format: ExportFormat, namingPreset: NamingPreset): string {
-  var suffix = namingPreset === 'semantic' ? '-semantic' : '-numeric';
-  if (format === 'tailwind') return 'okscale-tailwind.config' + suffix + '.ts';
-  if (format === 'tokens') return 'okscale-tokens' + suffix + '.json';
-  if (format === 'figma') return 'okscale-figma-variables' + suffix + '.json';
-  if (format === 'scss') return 'okscale-palette' + suffix + '.scss';
-  return 'okscale-palette' + suffix + '.css';
+function exampleText(label: string): string {
+  if (label === 'Body text on light surfaces') return 'The quick brown fox jumps over the lazy dog.';
+  if (label === 'Body text on brand surfaces') return 'Get started →';
+  if (label === 'Large headlines on brand surfaces') return 'Hello.';
+  return 'Last updated 2 hours ago';
 }
 
 function App() {
@@ -167,6 +174,14 @@ function App() {
     return formatFullExport(exportFormat, generated.palette, namingPreset);
   }, [generated, exportFormat, namingPreset]);
 
+  var exportMeta = useMemo(function () {
+    return {
+      filename: exportFilename(exportFormat, namingPreset),
+      format: exportFormat.toUpperCase(),
+      naming: namingPreset === 'semantic' ? 'Semantic' : 'Numeric',
+    };
+  }, [exportFormat, namingPreset]);
+
   var agentCommand = useMemo(function () {
     return (
       'mcporter call okscale.generate_palette ' +
@@ -193,9 +208,31 @@ function App() {
         null,
         2,
       ),
-      'Then summarize the 4 roles and suggest one export route.',
+      'Then summarize primary/secondary/accent/neutral and recommend one export route.',
     ].join('\n');
   }, [settings]);
+
+  var rawContrastRows = useMemo(function () {
+    if (!generated) return [] as Array<{ step: number; ratio: number; useWhite: boolean; grade: string; hex: string }>;
+    var scale = generated.palette.primary.scale;
+    var rows: Array<{ step: number; ratio: number; useWhite: boolean; grade: string; hex: string }> = [];
+    for (var i = 0; i < scale.length; i++) {
+      var item = scale[i];
+      var wr = contrastRatio('#ffffff', item.hex);
+      var br = contrastRatio('#000000', item.hex);
+      var useWhite = wr >= br;
+      var ratio = useWhite ? wr : br;
+      if (ratio < 4.5) continue;
+      rows.push({
+        step: item.step,
+        ratio: ratio,
+        useWhite: useWhite,
+        grade: ratioGrade(ratio),
+        hex: item.hex,
+      });
+    }
+    return rows;
+  }, [generated]);
 
   function flashCopied(key: string) {
     setCopied(key);
@@ -223,6 +260,33 @@ function App() {
   function setFromLch(nextL: number, nextC: number, nextH: number) {
     var hex = rgbToHex(oklchToRgb({ l: nextL, c: nextC, h: nextH }));
     onSetting('colorInput', hex);
+  }
+
+  function removeHistory(hex: string) {
+    setHistory(function (prev) {
+      var next = prev.filter(function (item) {
+        return item.toLowerCase() !== hex.toLowerCase();
+      });
+      saveHistory(next);
+      return next;
+    });
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    saveHistory([]);
+  }
+
+  function resetSettings() {
+    setSettings({
+      colorInput: '#d9ff00',
+      shadeMode: 'natural',
+      harmonyType: 'complementary',
+      anchorBehavior: 'preserve-input',
+      neutralMode: 'keep-hue',
+    });
+    setStatus('Reset to defaults.');
+    setIsError(false);
   }
 
   async function copyWithStatus(label: string, text: string) {
@@ -257,6 +321,8 @@ function App() {
       var colors = await extractThemeFromImageFile(file, 6);
       if (colors.length > 0) {
         onSetting('colorInput', colors[0]);
+        setStatus('Image theme extracted.');
+        setIsError(false);
       }
     } catch (_err) {
       setStatus('Image extraction failed.');
@@ -510,33 +576,40 @@ function App() {
               {history.map(function (hex) {
                 var active = settings.colorInput.toLowerCase() === hex.toLowerCase();
                 return (
-                  <button
-                    key={hex}
-                    type="button"
-                    class={'history-chip' + (active ? ' active' : '')}
-                    onClick={function () {
-                      onSetting('colorInput', hex);
-                    }}
-                  >
-                    {hex}
-                  </button>
+                  <div key={hex} class="history-entry">
+                    <button
+                      type="button"
+                      class={'history-chip' + (active ? ' active' : '')}
+                      onClick={function () {
+                        onSetting('colorInput', hex);
+                      }}
+                    >
+                      {hex}
+                    </button>
+                    <button
+                      type="button"
+                      class="history-remove"
+                      onClick={function () {
+                        removeHistory(hex);
+                      }}
+                      aria-label={'Remove ' + hex}
+                    >
+                      ×
+                    </button>
+                  </div>
                 );
               })}
             </div>
             <div class="row">
-              <button
-                class="btn"
-                type="button"
-                onClick={function () {
-                  sendGenerate();
-                }}
-              >
-                Regenerate
-              </button>
+              <button class="btn" type="button" onClick={sendGenerate}>Regenerate</button>
               <label class="btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer;">
                 Upload image
                 <input type="file" accept="image/*" onChange={handleImagePick} style="display:none;" />
               </label>
+            </div>
+            <div class="row">
+              <button class="btn" type="button" onClick={resetSettings}>Reset</button>
+              <button class="btn" type="button" onClick={clearHistory}>Clear history</button>
             </div>
           </div>
         </div>
@@ -560,8 +633,10 @@ function App() {
               })}
             </div>
 
+            {!generated && <div class="label">Generate a palette to see preview data.</div>}
+
             {generated && previewTab === 'palette' && (
-              <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;flex-direction:column;gap:12px;">
                 {roleArray(generated).map(function (role) {
                   return (
                     <div class="role-block" key={role.role}>
@@ -571,19 +646,84 @@ function App() {
                       </div>
                       <div class="scale-row">
                         {role.scale.map(function (item) {
+                          var key = 'scale-' + role.role + '-' + item.step;
                           return (
-                            <div
+                            <button
                               key={role.role + '-' + item.step}
-                              class="scale-dot"
+                              type="button"
+                              class="scale-circle"
                               style={{ background: item.hex }}
                               title={role.role + '/' + item.step + ': ' + item.hex}
-                            />
+                              onClick={function () {
+                                copyWithStatus(key, item.hex);
+                              }}
+                            >
+                              <span class="scale-circle-step">{item.step}</span>
+                              <span class="scale-circle-hex">{copied === key ? '✓' : item.hex.replace('#', '')}</span>
+                            </button>
                           );
                         })}
                       </div>
                     </div>
                   );
                 })}
+
+                {generated.gradients[0] && (
+                  <div class="gradient-group">
+                    <div class="section-title">Gradient</div>
+                    <button
+                      type="button"
+                      class="gradient-bar"
+                      style={{ background: generated.gradients[0].css }}
+                      onClick={function () { copyWithStatus('grad-main', generated.gradients[0].css); }}
+                    >
+                      <span>{copied === 'grad-main' ? 'Copied' : 'Copy CSS'}</span>
+                    </button>
+                    <pre class="code-box"><code>{generated.gradients[0].css}</code></pre>
+                  </div>
+                )}
+
+                {generated.gradients[1] && (
+                  <div class="gradient-group">
+                    <div class="section-title">Vivid</div>
+                    <button
+                      type="button"
+                      class="gradient-bar"
+                      style={{ background: generated.gradients[1].css }}
+                      onClick={function () { copyWithStatus('grad-vivid', generated.gradients[1].css); }}
+                    >
+                      <span>{copied === 'grad-vivid' ? 'Copied' : 'Copy CSS'}</span>
+                    </button>
+                    <pre class="code-box"><code>{generated.gradients[1].css}</code></pre>
+                  </div>
+                )}
+
+                {generated.gradients[2] && generated.gradients[3] && generated.gradients[4] && (
+                  <div class="gradient-group">
+                    <div class="section-title">× Neutral 50</div>
+                    <div class="gradient-trio">
+                      {[
+                        { label: 'Primary', g: generated.gradients[2], key: 'grad-p' },
+                        { label: 'Secondary', g: generated.gradients[3], key: 'grad-s' },
+                        { label: 'Accent', g: generated.gradients[4], key: 'grad-a' },
+                      ].map(function (item) {
+                        return (
+                          <div class="gradient-trio-item" key={item.label}>
+                            <button
+                              type="button"
+                              class="gradient-bar"
+                              style={{ background: item.g.css }}
+                              onClick={function () { copyWithStatus(item.key, item.g.css); }}
+                            >
+                              <span>{copied === item.key ? 'Copied' : 'Copy'}</span>
+                            </button>
+                            <span class="label">{item.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -638,21 +778,37 @@ function App() {
             )}
 
             {generated && previewTab === 'contrast' && (
-              <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;flex-direction:column;gap:10px;">
                 {generated.usageRows.map(function (row) {
                   var textHex = scaleHex(generated.palette.primary, row.textStep, '#000');
                   var bgHex = scaleHex(generated.palette.primary, row.backgroundStep, '#fff');
+                  var grade = ratioGrade(row.ratio);
                   return (
                     <div class="contrast-item" key={row.label}>
                       <div class="contrast-demo" style={{ background: bgHex, color: textHex }}>
-                        {row.label}
+                        {exampleText(row.label)}
                       </div>
                       <div class="contrast-meta">
-                        {row.textStep} on {row.backgroundStep} · {row.ratio.toFixed(1)}:1
+                        {row.label} · {row.textStep} on {row.backgroundStep} · {row.ratio.toFixed(1)}:1 · {grade}
                       </div>
                     </div>
                   );
                 })}
+
+                <div class="raw-contrast-wrap">
+                  <div class="section-title">Raw step ratios (AA+)</div>
+                  {rawContrastRows.map(function (item) {
+                    return (
+                      <div class="raw-row" key={item.step}>
+                        <div class="raw-swatch" style={{ background: item.hex }}></div>
+                        <span>{item.step}</span>
+                        <span>{item.useWhite ? 'W' : 'B'}</span>
+                        <span>{item.ratio.toFixed(1)}:1</span>
+                        <span>{item.grade}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -720,11 +876,12 @@ function App() {
                     </select>
                   </div>
                 </div>
-                <div class="label">{exportFilename(exportFormat, namingPreset)}</div>
+                <div class="label">Filename: {exportMeta.filename}</div>
+                <div class="label">Format: {exportMeta.format} · Naming: {exportMeta.naming}</div>
               </div>
 
               <div class="section">
-                <pre class="code-box"><code>{code.length > 1800 ? code.slice(0, 1800) + '\n…' : code}</code></pre>
+                <pre class="code-box"><code>{code.length > 2200 ? code.slice(0, 2200) + '\n…' : code}</code></pre>
                 <div class="row">
                   <button class="btn" type="button" onClick={function () { copyWithStatus('code-copy', code); }}>
                     {copied === 'code-copy' ? 'Copied' : 'Copy code'}
@@ -746,6 +903,16 @@ function App() {
           {route === 'figma' && (
             <div class="section">
               <div class="section-title">Import to Figma Variables</div>
+              <div class="field">
+                <label class="label">Naming</label>
+                <select class="select" value={namingPreset} onChange={function (e) {
+                  setNamingPreset((e.currentTarget as HTMLSelectElement).value as NamingPreset);
+                }}>
+                  {NAMING_PRESETS.map(function (preset) {
+                    return <option key={preset} value={preset}>{preset}</option>;
+                  })}
+                </select>
+              </div>
               <ol class="label" style="margin:0;padding-left:16px;display:flex;flex-direction:column;gap:4px;">
                 <li>Generate with current settings.</li>
                 <li>Apply variables to local collection.</li>
@@ -781,15 +948,7 @@ function App() {
       </main>
 
       <footer class="footer-actions">
-        <button
-          type="button"
-          class="btn"
-          onClick={function () {
-            sendGenerate();
-          }}
-        >
-          Generate
-        </button>
+        <button type="button" class="btn" onClick={sendGenerate}>Generate</button>
         <button
           type="button"
           class="btn primary"
