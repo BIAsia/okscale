@@ -1,19 +1,43 @@
 # OKScale Figma Plugin (in-repo)
 
-This plugin is a Generator-aligned Figma plugin implementation that **reuses OKScale core generation logic** from the web app.
+This plugin ports Generator capabilities into a Figma-native workflow while reusing shared OKScale logic.
 
 ## Goal
 
-- Keep one source of truth for palette generation.
-- Reuse shared contracts and core logic.
-- Provide Figma-native variable writing flow.
+- Keep one source of truth for generation logic.
+- Reuse existing OKScale color pipeline (not reimplement it in plugin-only code).
+- Preserve Generator interaction model with plugin-suitable layout.
 
-## Files
+## Architecture
 
-- `figma-plugin/manifest.json`
-- `figma-plugin/code.ts` (Figma runtime)
+### Shared logic
+
+- `figma-plugin/shared.ts`
+  - wraps shared libs and computes:
+    - palette
+    - harmony
+    - gradients
+    - contrast usage rows
+    - warnings
+
+### Figma runtime
+
+- `figma-plugin/code.ts`
+  - receives UI messages
+  - generates data through `generatePluginData()`
+  - applies variables to local collection
+
+### Plugin UI
+
+- `figma-plugin/ui.tsx`
+- `figma-plugin/styles.css`
 - `figma-plugin/ui.html`
-- `figma-plugin/ui.ts`
+
+UI uses **3 main tabs** instead of web 3-column layout:
+
+- Controls
+- Preview
+- Export
 
 ## Build
 
@@ -30,23 +54,17 @@ Build outputs:
 
 1. Open Figma Desktop → Plugins → Development → Import plugin from manifest.
 2. Select `figma-plugin/manifest.json`.
-3. Run plugin: "OKScale Generator".
+3. Run plugin: `OKScale Generator`.
 
-## Reuse boundary
+## Variable write behavior
 
-Plugin runtime directly uses:
-
-- `generatePaletteResponse()` from `src/core/service.ts`
-
-That guarantees plugin output stays aligned with web Generator behavior.
-
-## Current variable write behavior
-
-- Creates or reuses collection: `OKScale`
-- Variable naming: `role/step` (e.g. `primary/500`)
+- Collection: create/reuse `OKScale`
+- Variable naming: `role/stepName`
+  - numeric preset: `primary/500`
+  - semantic preset: `primary/base`, etc.
 - Roles: `primary`, `secondary`, `accent`, `neutral`
-- Writes all 11 steps per role to collection default mode
+- Writes full 11-step scales to collection default mode
 
-## Compatibility note
+## Compatibility
 
-Plugin bundle target is `es2015` to stay safe in Figma sandbox environments.
+Plugin bundles target `es2015` for Figma sandbox safety.

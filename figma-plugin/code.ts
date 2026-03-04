@@ -1,26 +1,36 @@
-import { generatePaletteResponse, MachineInputError } from '../src/core/service';
+import type { NamingPreset } from '../src/lib/export';
+import { generatePluginData, type PluginSettings } from './shared';
 
 declare var figma: any;
 declare var __html__: string;
 
-type GeneratePayload = {
-  colorInput: string;
-  shadeMode: 'none' | 'warm' | 'cool' | 'natural';
-  harmonyType:
-    | 'complementary'
-    | 'analogous'
-    | 'triadic'
-    | 'split-complementary'
-    | 'tetradic';
-  anchorBehavior: 'preserve-input' | 'auto-gamut';
-};
-
 type UiInbound =
-  | { type: 'generate'; payload: GeneratePayload }
-  | { type: 'apply'; payload: GeneratePayload }
+  | { type: 'generate'; payload: PluginSettings }
+  | { type: 'apply-variables'; payload: { settings: PluginSettings; namingPreset: NamingPreset } }
   | { type: 'close' };
 
 var ROLES = ['primary', 'secondary', 'accent', 'neutral'];
+
+var SEMANTIC_STEP_NAMES: Record<number, string> = {
+  50: 'bg-soft',
+  100: 'bg',
+  200: 'surface',
+  300: 'border-soft',
+  400: 'border',
+  500: 'base',
+  600: 'strong',
+  700: 'stronger',
+  800: 'text-soft',
+  900: 'text',
+  950: 'text-strong',
+};
+
+function tokenName(step: number, preset: NamingPreset): string {
+  if (preset === 'semantic') {
+    return SEMANTIC_STEP_NAMES[step] || String(step);
+  }
+  return String(step);
+}
 
 function toFigmaRgb(hex: string): { r: number; g: number; b: number } {
   var clean = hex.replace('#', '');
@@ -58,7 +68,10 @@ function findOrCreateColorVariable(collection: any, variableName: string): any {
   return figma.variables.createVariable(variableName, collection.id, 'COLOR');
 }
 
-function applyVariables(payload: ReturnType<typeof generatePaletteResponse>): {
+function applyVariables(
+  generated: ReturnType<typeof generatePluginData>,
+  namingPreset: NamingPreset,
+): {
   collectionName: string;
   updatedCount: number;
 } {
@@ -68,10 +81,10 @@ function applyVariables(payload: ReturnType<typeof generatePaletteResponse>): {
 
   for (var r = 0; r < ROLES.length; r++) {
     var role = ROLES[r] as 'primary' | 'secondary' | 'accent' | 'neutral';
-    var roleEntry = payload.palette[role];
+    var roleEntry = generated.palette[role];
     for (var i = 0; i < roleEntry.scale.length; i++) {
       var stepItem = roleEntry.scale[i];
-      var variableName = role + '/' + stepItem.step;
+      var variableName = role + '/' + tokenName(stepItem.step, namingPreset);
       var variable = findOrCreateColorVariable(collection, variableName);
       variable.setValueForMode(modeId, toFigmaRgb(stepItem.hex));
       updatedCount += 1;
@@ -87,16 +100,7 @@ function applyVariables(payload: ReturnType<typeof generatePaletteResponse>): {
 function toMachineError(err: unknown): {
   code: string;
   message: string;
-  hint?: string;
 } {
-  if (err instanceof MachineInputError) {
-    return {
-      code: err.code,
-      message: err.message,
-      hint: err.hint,
-    };
-  }
-
   if (err instanceof Error) {
     return {
       code: 'INTERNAL_ERROR',
@@ -110,7 +114,7 @@ function toMachineError(err: unknown): {
   };
 }
 
-figma.showUI(__html__, { width: 420, height: 660 });
+figma.showUI(__html__, { width: 460, height: 700 });
 
 figma.ui.onmessage = function (msg: UiInbound) {
   if (!msg || !msg.type) return;
@@ -121,9 +125,8 @@ figma.ui.onmessage = function (msg: UiInbound) {
   }
 
   try {
-    var generated = generatePaletteResponse(msg.payload);
-
     if (msg.type === 'generate') {
+      var generated = generatePluginData(msg.payload);
       figma.ui.postMessage({
         type: 'generated',
         payload: generated,
@@ -131,8 +134,9 @@ figma.ui.onmessage = function (msg: UiInbound) {
       return;
     }
 
-    if (msg.type === 'apply') {
-      var result = applyVariables(generated);
+    if (msg.type === 'apply-variables') {
+      var generatedForApply = generatePluginData(msg.payload.settings);
+      var result = applyVariables(generatedForApply, msg.payload.namingPreset || 'numeric');
       figma.notify('OKScale: ' + result.updatedCount + ' variables updated.');
       figma.ui.postMessage({
         type: 'applied',
