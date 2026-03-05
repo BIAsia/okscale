@@ -2,6 +2,8 @@
 
 This plugin ports Generator capabilities into a Figma-native workflow while reusing shared OKScale logic.
 
+Built with [create-figma-plugin](https://github.com/yuanqing/create-figma-plugin) for stable UI initialization and development experience.
+
 ## Goal
 
 - Keep one source of truth for generation logic.
@@ -22,16 +24,16 @@ This plugin ports Generator capabilities into a Figma-native workflow while reus
 
 ### Figma runtime
 
-- `figma-plugin/code.ts`
-  - receives UI messages
+- `figma-plugin/main.ts`
+  - receives UI events via `on()`
   - generates data through `generatePluginData()`
   - applies variables to local collection
+  - emits results back to UI via `emit()`
 
 ### Plugin UI
 
 - `figma-plugin/ui.tsx`
 - `figma-plugin/styles.css`
-- `figma-plugin/ui.html`
 
 UI uses **3 main tabs** instead of web 3-column layout:
 
@@ -45,20 +47,26 @@ UI uses **3 main tabs** instead of web 3-column layout:
 npm run build:figma-plugin
 ```
 
-Build outputs (self-contained):
+Build outputs:
 
-- `figma-plugin/dist/code.js` — plugin main thread logic
-- `figma-plugin/dist/ui.html` — inlined UI (CSS + JS bundled)
-- `figma-plugin/dist/manifest.json` — generated manifest
+- `build/main.js` — plugin main thread
+- `build/ui.js` — plugin UI bundle
+- `manifest.json` — auto-generated manifest (root directory)
+
+## Development
+
+Watch mode for live rebuild:
+
+```bash
+npm run watch:figma-plugin
+```
 
 ## Load in Figma
 
-1. Run `npm run build:figma-plugin` to generate dist artifacts.
+1. Run `npm run build:figma-plugin` to generate build artifacts.
 2. Open Figma Desktop → Plugins → Development → Import plugin from manifest.
-3. Select `figma-plugin/dist/manifest.json` (not the root manifest).
+3. Select `manifest.json` (root directory).
 4. Run plugin: `OKScale Generator`.
-
-**Important:** Always import from `dist/manifest.json` after building. The UI is self-contained (no external script dependencies).
 
 ## Variable write behavior
 
@@ -71,4 +79,4 @@ Build outputs (self-contained):
 
 ## Compatibility
 
-Plugin bundles target `es2015` for Figma sandbox safety.
+Plugin uses `create-figma-plugin` build system with automatic compatibility handling.
