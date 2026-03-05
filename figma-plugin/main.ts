@@ -1,14 +1,21 @@
+import { emit, on, once, showUI } from '@create-figma-plugin/utilities';
 import type { NamingPreset } from '../src/lib/export';
 import { generatePluginData, type PluginSettings } from './shared';
 
-declare var figma: any;
-declare var __html__: string;
+interface GenerateHandler {
+  name: 'GENERATE';
+  handler: (settings: PluginSettings) => void;
+}
 
-type UiInbound =
-  | { type: 'ui-ready' }
-  | { type: 'generate'; payload: PluginSettings }
-  | { type: 'apply-variables'; payload: { settings: PluginSettings; namingPreset: NamingPreset } }
-  | { type: 'close' };
+interface ApplyVariablesHandler {
+  name: 'APPLY_VARIABLES';
+  handler: (settings: PluginSettings, namingPreset: NamingPreset) => void;
+}
+
+interface CloseHandler {
+  name: 'CLOSE';
+  handler: () => void;
+}
 
 var ROLES = ['primary', 'secondary', 'accent', 'neutral'];
 
@@ -43,7 +50,7 @@ function toFigmaRgb(hex: string): { r: number; g: number; b: number } {
   };
 }
 
-function getOrCreateCollection(name: string): any {
+function getOrCreateCollection(name: string): VariableCollection {
   var collections = figma.variables.getLocalVariableCollections();
   for (var i = 0; i < collections.length; i++) {
     if (collections[i].name === name) return collections[i];
@@ -51,14 +58,14 @@ function getOrCreateCollection(name: string): any {
   return figma.variables.createVariableCollection(name);
 }
 
-function getDefaultModeId(collection: any): string {
+function getDefaultModeId(collection: VariableCollection): string {
   if (collection.modes && collection.modes.length > 0) {
     return collection.modes[0].modeId;
   }
   return collection.defaultModeId;
 }
 
-function findOrCreateColorVariable(collection: any, variableName: string): any {
+function findOrCreateColorVariable(collection: VariableCollection, variableName: string): Variable {
   var variables = figma.variables.getLocalVariables('COLOR');
   for (var i = 0; i < variables.length; i++) {
     var v = variables[i];
@@ -115,51 +122,36 @@ function toMachineError(err: unknown): {
   };
 }
 
-figma.showUI(__html__, { width: 460, height: 700 });
-
-var bootTimeout = setTimeout(function () {
-  figma.notify('OKScale UI failed to boot. Please rebuild plugin and relaunch.');
-}, 1500);
-
-figma.ui.onmessage = function (msg: UiInbound) {
-  if (!msg || !msg.type) return;
-
-  if (msg.type === 'ui-ready') {
-    clearTimeout(bootTimeout);
-    return;
-  }
-
-  if (msg.type === 'close') {
-    clearTimeout(bootTimeout);
-    figma.closePlugin();
-    return;
-  }
-
-  try {
-    if (msg.type === 'generate') {
-      var generated = generatePluginData(msg.payload);
-      figma.ui.postMessage({
-        type: 'generated',
-        payload: generated,
-      });
-      return;
+export default function () {
+  on<GenerateHandler>('GENERATE', function (settings) {
+    try {
+      var generated = generatePluginData(settings);
+      emit('GENERATED', generated);
+    } catch (err) {
+      var shape = toMachineError(err);
+      emit('ERROR', shape);
     }
+  });
 
-    if (msg.type === 'apply-variables') {
-      var generatedForApply = generatePluginData(msg.payload.settings);
-      var result = applyVariables(generatedForApply, msg.payload.namingPreset || 'numeric');
+  on<ApplyVariablesHandler>('APPLY_VARIABLES', function (settings, namingPreset) {
+    try {
+      var generated = generatePluginData(settings);
+      var result = applyVariables(generated, namingPreset || 'numeric');
       figma.notify('OKScale: ' + result.updatedCount + ' variables updated.');
-      figma.ui.postMessage({
-        type: 'applied',
-        payload: result,
-      });
-      return;
+      emit('APPLIED', result);
+    } catch (err) {
+      var shape = toMachineError(err);
+      emit('ERROR', shape);
     }
-  } catch (err) {
-    var shape = toMachineError(err);
-    figma.ui.postMessage({
-      type: 'error',
-      payload: shape,
-    });
-  }
-};
+  });
+
+  on<CloseHandler>('CLOSE', function () {
+    figma.closePlugin();
+  });
+
+  once('CLOSE', function () {
+    figma.closePlugin();
+  });
+
+  showUI({ width: 460, height: 700 });
+}
