@@ -1,5 +1,18 @@
 import { emit, on } from '@create-figma-plugin/utilities';
-import { render, h } from 'preact';
+import {
+  Button,
+  Container,
+  Dropdown,
+  DropdownOption,
+  render,
+  Textbox,
+  VerticalSpace,
+  Tabs,
+  TabsOption,
+  Text,
+  Bold,
+} from '@create-figma-plugin/ui';
+import { h } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { contrastRatio, ratioGrade } from '../src/lib/contrast';
 import { formatFullExport, type ExportFormat, type NamingPreset } from '../src/lib/export';
@@ -95,7 +108,7 @@ function exampleText(label: string): string {
   return 'Last updated 2 hours ago';
 }
 
-function App() {
+function Plugin() {
   var settingsState = useState<PluginSettings>({
     colorInput: '#d9ff00',
     shadeMode: 'natural',
@@ -395,556 +408,234 @@ function App() {
     };
   }, []);
 
+  var mainTabOptions: TabsOption[] = [
+    { value: 'controls', children: <Text>Controls</Text> },
+    { value: 'preview', children: <Text>Preview</Text> },
+    { value: 'export', children: <Text>Export</Text> },
+  ];
+
+  var shadeModeOptions: DropdownOption[] = [
+    { value: 'none' },
+    { value: 'warm' },
+    { value: 'cool' },
+    { value: 'natural' },
+  ];
+
+  var harmonyOptions: DropdownOption[] = [
+    { value: 'complementary' },
+    { value: 'analogous' },
+    { value: 'triadic' },
+    { value: 'split-complementary' },
+    { value: 'tetradic' },
+  ];
+
+  var anchorOptions: DropdownOption[] = [
+    { value: 'preserve-input' },
+    { value: 'auto-gamut' },
+  ];
+
+  var neutralOptions: DropdownOption[] = [
+    { value: 'keep-hue' },
+    { value: 'absolute-gray' },
+  ];
+
   return (
-    <div class="plugin-wrap">
-      <header class="plugin-topbar">
-        <span class="plugin-title">OKScale Generator</span>
-        <button
-          type="button"
-          class="plugin-close"
-          onClick={function () {
-            emit('CLOSE');
-          }}
-        >
-          Close
-        </button>
-      </header>
+    <Container space="medium">
+      <VerticalSpace space="small" />
+      <Tabs
+        options={mainTabOptions}
+        value={mainTab}
+        onValueChange={function (value) {
+          setMainTab(value as MainTab);
+        }}
+      />
+      <VerticalSpace space="medium" />
 
-      <div class="plugin-tabs">
-        {(['controls', 'preview', 'export'] as MainTab[]).map(function (tab) {
-          return (
-            <button
-              key={tab}
-              type="button"
-              class={'plugin-tab-btn' + (mainTab === tab ? ' active' : '')}
-              onClick={function () {
-                setMainTab(tab);
-              }}
-            >
-              {tab === 'controls' ? 'Controls' : tab === 'preview' ? 'Preview' : 'Export'}
-            </button>
-          );
-        })}
-      </div>
+      {mainTab === 'controls' && (
+        <Container space="medium">
+          <Text><Bold>Color source</Bold></Text>
+          <VerticalSpace space="small" />
+          <Textbox
+            value={settings.colorInput}
+            onValueInput={function (value) {
+              onSetting('colorInput', value);
+            }}
+            variant="border"
+          />
+          <VerticalSpace space="medium" />
 
-      <main class="plugin-content">
-        {/* Controls tab content - will add in next chunk */}
-        {mainTab === 'controls' && (
-          <div>
-            <div class="section">
-              <div class="section-title">Color source</div>
-              <div class="color-row">
-                <input
-                  type="color"
-                  class="color-input"
-                  value={parsed ? rgbToHex(parsed) : '#d9ff00'}
-                  onInput={function (e) {
-                    onSetting('colorInput', (e.currentTarget as HTMLInputElement).value);
-                  }}
-                />
-                <input
-                  class="hex"
-                  value={settings.colorInput}
-                  onInput={function (e) {
-                    onSetting('colorInput', (e.currentTarget as HTMLInputElement).value);
-                  }}
-                />
+          {localOklch && (
+            <>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <Text>L</Text>
+                <Text>{(localOklch.l * 100).toFixed(1)}</Text>
               </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.001"
+                value={localOklch.l}
+                onInput={function (e) {
+                  var val = parseFloat((e.currentTarget as HTMLInputElement).value);
+                  setFromLch(val, localOklch.c, localOklch.h);
+                }}
+                style="width:100%;"
+              />
+              <VerticalSpace space="small" />
 
-              {localOklch && (
-                <>
-                  <div class="slider-row">
-                    <div class="slider-head"><span>L</span><span>{(localOklch.l * 100).toFixed(1)}</span></div>
-                    <input
-                      class="slider"
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.001"
-                      value={localOklch.l}
-                      onInput={function (e) {
-                        var val = parseFloat((e.currentTarget as HTMLInputElement).value);
-                        setFromLch(val, localOklch.c, localOklch.h);
-                      }}
-                    />
-                  </div>
-                  <div class="slider-row">
-                    <div class="slider-head"><span>C</span><span>{(localOklch.c * 100).toFixed(1)}</span></div>
-                    <input
-                      class="slider"
-                      type="range"
-                      min="0"
-                      max="0.4"
-                      step="0.001"
-                      value={localOklch.c}
-                      onInput={function (e) {
-                        var val = parseFloat((e.currentTarget as HTMLInputElement).value);
-                        setFromLch(localOklch.l, val, localOklch.h);
-                      }}
-                    />
-                  </div>
-                  <div class="slider-row">
-                    <div class="slider-head"><span>H</span><span>{localOklch.h.toFixed(1)}</span></div>
-                    <input
-                      class="slider"
-                      type="range"
-                      min="0"
-                      max="360"
-                      step="0.1"
-                      value={localOklch.h}
-                      onInput={function (e) {
-                        var val = parseFloat((e.currentTarget as HTMLInputElement).value);
-                        setFromLch(localOklch.l, localOklch.c, val);
-                      }}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div class="section">
-              <div class="row">
-                <div class="field">
-                  <label class="label">Shade mode</label>
-                  <select class="select" value={settings.shadeMode} onChange={function (e) {
-                    onSetting('shadeMode', (e.currentTarget as HTMLSelectElement).value as PluginSettings['shadeMode']);
-                  }}>
-                    <option value="none">none</option>
-                    <option value="warm">warm</option>
-                    <option value="cool">cool</option>
-                    <option value="natural">natural</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label class="label">Harmony</label>
-                  <select class="select" value={settings.harmonyType} onChange={function (e) {
-                    onSetting('harmonyType', (e.currentTarget as HTMLSelectElement).value as PluginSettings['harmonyType']);
-                  }}>
-                    <option value="complementary">complementary</option>
-                    <option value="analogous">analogous</option>
-                    <option value="triadic">triadic</option>
-                    <option value="split-complementary">split-complementary</option>
-                    <option value="tetradic">tetradic</option>
-                  </select>
-                </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <Text>C</Text>
+                <Text>{(localOklch.c * 100).toFixed(1)}</Text>
               </div>
-              <div class="row">
-                <div class="field">
-                  <label class="label">Anchor behavior</label>
-                  <select class="select" value={settings.anchorBehavior} onChange={function (e) {
-                    onSetting('anchorBehavior', (e.currentTarget as HTMLSelectElement).value as PluginSettings['anchorBehavior']);
-                  }}>
-                    <option value="preserve-input">preserve-input</option>
-                    <option value="auto-gamut">auto-gamut</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label class="label">Neutral mode</label>
-                  <select class="select" value={settings.neutralMode} onChange={function (e) {
-                    onSetting('neutralMode', (e.currentTarget as HTMLSelectElement).value as PluginSettings['neutralMode']);
-                  }}>
-                    <option value="keep-hue">keep-hue</option>
-                    <option value="absolute-gray">absolute-gray</option>
-                  </select>
-                </div>
+              <input
+                type="range"
+                min="0"
+                max="0.4"
+                step="0.001"
+                value={localOklch.c}
+                onInput={function (e) {
+                  var val = parseFloat((e.currentTarget as HTMLInputElement).value);
+                  setFromLch(localOklch.l, val, localOklch.h);
+                }}
+                style="width:100%;"
+              />
+              <VerticalSpace space="small" />
+
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <Text>H</Text>
+                <Text>{localOklch.h.toFixed(1)}</Text>
               </div>
-            </div>
+              <input
+                type="range"
+                min="0"
+                max="360"
+                step="0.1"
+                value={localOklch.h}
+                onInput={function (e) {
+                  var val = parseFloat((e.currentTarget as HTMLInputElement).value);
+                  setFromLch(localOklch.l, localOklch.c, val);
+                }}
+                style="width:100%;"
+              />
+              <VerticalSpace space="medium" />
+            </>
+          )}
 
-            <div class="section">
-              <div class="section-title">History</div>
-              <div class="history-wrap">
-                {history.length === 0 && <span class="label">No history yet</span>}
-                {history.map(function (hex) {
-                  var active = settings.colorInput.toLowerCase() === hex.toLowerCase();
-                  return (
-                    <div key={hex} class="history-entry">
-                      <button
-                        type="button"
-                        class={'history-chip' + (active ? ' active' : '')}
-                        onClick={function () {
-                          onSetting('colorInput', hex);
-                        }}
-                      >
-                        {hex}
-                      </button>
-                      <button
-                        type="button"
-                        class="history-remove"
-                        onClick={function () {
-                          removeHistory(hex);
-                        }}
-                        aria-label={'Remove ' + hex}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-              <div class="row">
-                <button class="btn" type="button" onClick={sendGenerate}>Regenerate</button>
-                <label class="btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer;">
-                  Upload image
-                  <input type="file" accept="image/*" onChange={handleImagePick} style="display:none;" />
-                </label>
-              </div>
-              <div class="row">
-                <button class="btn" type="button" onClick={resetSettings}>Reset</button>
-                <button class="btn" type="button" onClick={clearHistory}>Clear history</button>
-              </div>
-            </div>
-          </div>
-        )}
+          <Text><Bold>Shade mode</Bold></Text>
+          <VerticalSpace space="small" />
+          <Dropdown
+            options={shadeModeOptions}
+            value={settings.shadeMode}
+            onValueChange={function (value) {
+              onSetting('shadeMode', value as PluginSettings['shadeMode']);
+            }}
+          />
+          <VerticalSpace space="small" />
 
-        {/* Preview tab */}
-        {mainTab === 'preview' && (
-          <div>
-            <div class="section">
-              <div class="preview-tabs">
-                {(['palette', 'ui', 'contrast'] as PreviewTab[]).map(function (tab) {
-                  return (
-                    <button
-                      key={tab}
-                      type="button"
-                      class={'preview-tab' + (previewTab === tab ? ' active' : '')}
-                      onClick={function () {
-                        setPreviewTab(tab);
-                      }}
-                    >
-                      {tab === 'ui' ? 'UI Preview' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </button>
-                  );
-                })}
-              </div>
+          <Text><Bold>Harmony</Bold></Text>
+          <VerticalSpace space="small" />
+          <Dropdown
+            options={harmonyOptions}
+            value={settings.harmonyType}
+            onValueChange={function (value) {
+              onSetting('harmonyType', value as PluginSettings['harmonyType']);
+            }}
+          />
+          <VerticalSpace space="small" />
 
-              {!generated && <div class="label">Generate a palette to see preview data.</div>}
+          <Text><Bold>Anchor behavior</Bold></Text>
+          <VerticalSpace space="small" />
+          <Dropdown
+            options={anchorOptions}
+            value={settings.anchorBehavior}
+            onValueChange={function (value) {
+              onSetting('anchorBehavior', value as PluginSettings['anchorBehavior']);
+            }}
+          />
+          <VerticalSpace space="small" />
 
-              {generated && previewTab === 'palette' && (
-                <div style="display:flex;flex-direction:column;gap:12px;">
-                  {roleArray(generated).map(function (role) {
-                    return (
-                      <div class="role-block" key={role.role}>
-                        <div class="role-head">
-                          <span>{role.label}</span>
-                          <span>{role.baseHex}</span>
-                        </div>
-                        <div class="scale-row">
-                          {role.scale.map(function (item) {
-                            var key = 'scale-' + role.role + '-' + item.step;
-                            return (
-                              <button
-                                key={role.role + '-' + item.step}
-                                type="button"
-                                class="scale-circle"
-                                style={{ background: item.hex }}
-                                title={role.role + '/' + item.step + ': ' + item.hex}
-                                onClick={function () {
-                                  copyWithStatus(key, item.hex);
-                                }}
-                              >
-                                <span class="scale-circle-step">{item.step}</span>
-                                <span class="scale-circle-hex">{copied === key ? '✓' : item.hex.replace('#', '')}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+          <Text><Bold>Neutral mode</Bold></Text>
+          <VerticalSpace space="small" />
+          <Dropdown
+            options={neutralOptions}
+            value={settings.neutralMode}
+            onValueChange={function (value) {
+              onSetting('neutralMode', value as PluginSettings['neutralMode']);
+            }}
+          />
+          <VerticalSpace space="medium" />
 
-                  {generated.gradients[0] && (
-                    <div class="gradient-group">
-                      <div class="section-title">Gradient</div>
-                      <button
-                        type="button"
-                        class="gradient-bar"
-                        style={{ background: generated.gradients[0].css }}
-                        onClick={function () { copyWithStatus('grad-main', generated.gradients[0].css); }}
-                      >
-                        <span>{copied === 'grad-main' ? 'Copied' : 'Copy CSS'}</span>
-                      </button>
-                      <pre class="code-box"><code>{generated.gradients[0].css}</code></pre>
-                    </div>
-                  )}
-
-                  {generated.gradients[1] && (
-                    <div class="gradient-group">
-                      <div class="section-title">Vivid</div>
-                      <button
-                        type="button"
-                        class="gradient-bar"
-                        style={{ background: generated.gradients[1].css }}
-                        onClick={function () { copyWithStatus('grad-vivid', generated.gradients[1].css); }}
-                      >
-                        <span>{copied === 'grad-vivid' ? 'Copied' : 'Copy CSS'}</span>
-                      </button>
-                      <pre class="code-box"><code>{generated.gradients[1].css}</code></pre>
-                    </div>
-                  )}
-
-                  {generated.gradients[2] && generated.gradients[3] && generated.gradients[4] && (
-                    <div class="gradient-group">
-                      <div class="section-title">× Neutral 50</div>
-                      <div class="gradient-trio">
-                        {[
-                          { label: 'Primary', g: generated.gradients[2], key: 'grad-p' },
-                          { label: 'Secondary', g: generated.gradients[3], key: 'grad-s' },
-                          { label: 'Accent', g: generated.gradients[4], key: 'grad-a' },
-                        ].map(function (item) {
-                          return (
-                            <div class="gradient-trio-item" key={item.label}>
-                              <button
-                                type="button"
-                                class="gradient-bar"
-                                style={{ background: item.g.css }}
-                                onClick={function () { copyWithStatus(item.key, item.g.css); }}
-                              >
-                                <span>{copied === item.key ? 'Copied' : 'Copy'}</span>
-                              </button>
-                              <span class="label">{item.label}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {generated && previewTab === 'ui' && (
-                <div
-                  class="preview-card"
-                  style={{
-                    backgroundColor: scaleHex(generated.palette.neutral, 50, '#f8fafc'),
-                    borderColor: scaleHex(generated.palette.neutral, 200, '#e2e8f0'),
-                    color: scaleHex(generated.palette.neutral, 900, '#0f172a'),
-                  }}
-                >
-                  <div class="preview-card-head">
-                    <div>
-                      <div class="label">Product Card</div>
-                      <div>Tokenized preview block</div>
-                    </div>
-                    <span
-                      class="badge"
-                      style={{
-                        backgroundColor: scaleHex(generated.palette.accent, 100, '#e0f2fe'),
-                        color: scaleHex(generated.palette.accent, 700, '#0c4a6e'),
-                      }}
-                    >
-                      Accent Tag
-                    </span>
-                  </div>
-                  <div class="preview-actions">
-                    <button
-                      type="button"
-                      class="btn"
-                      style={{
-                        backgroundColor: scaleHex(generated.palette.primary, 600, '#2563eb'),
-                        color: scaleHex(generated.palette.primary, 50, '#eff6ff'),
-                      }}
-                    >
-                      Primary action
-                    </button>
-                    <button
-                      type="button"
-                      class="btn"
-                      style={{
-                        backgroundColor: scaleHex(generated.palette.neutral, 100, '#f1f5f9'),
-                        color: scaleHex(generated.palette.neutral, 900, '#0f172a'),
-                        borderColor: scaleHex(generated.palette.neutral, 300, '#cbd5e1'),
-                      }}
-                    >
-                      Secondary action
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {generated && previewTab === 'contrast' && (
-                <div style="display:flex;flex-direction:column;gap:10px;">
-                  {generated.usageRows.map(function (row) {
-                    var textHex = scaleHex(generated.palette.primary, row.textStep, '#000');
-                    var bgHex = scaleHex(generated.palette.primary, row.backgroundStep, '#fff');
-                    var grade = ratioGrade(row.ratio);
-                    return (
-                      <div class="contrast-item" key={row.label}>
-                        <div class="contrast-demo" style={{ background: bgHex, color: textHex }}>
-                          {exampleText(row.label)}
-                        </div>
-                        <div class="contrast-meta">
-                          {row.label} · {row.textStep} on {row.backgroundStep} · {row.ratio.toFixed(1)}:1 · {grade}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  <div class="raw-contrast-wrap">
-                    <div class="section-title">Raw step ratios (AA+)</div>
-                    {rawContrastRows.map(function (item) {
-                      return (
-                        <div class="raw-row" key={item.step}>
-                          <div class="raw-swatch" style={{ background: item.hex }}></div>
-                          <span>{item.step}</span>
-                          <span>{item.useWhite ? 'W' : 'B'}</span>
-                          <span>{item.ratio.toFixed(1)}:1</span>
-                          <span>{item.grade}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Export tab */}
-        {mainTab === 'export' && (
-          <div>
-            <div class="section">
-              <div class="section-title">Export route</div>
-              <div class="export-route-row">
-                {(['agent', 'code', 'figma'] as ExportRoute[]).map(function (item) {
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      class={'route-btn' + (route === item ? ' active' : '')}
-                      onClick={function () {
-                        setRoute(item);
-                      }}
-                    >
-                      {item === 'agent' ? 'Connect Agent' : item === 'code' ? 'Export Code' : 'Import to Figma'}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {route === 'agent' && (
-              <div class="section">
-                <div class="section-title">Command</div>
-                <pre class="code-box"><code>{agentCommand}</code></pre>
-                <button class="btn" type="button" onClick={function () { copyWithStatus('agent-command', agentCommand); }}>
-                  {copied === 'agent-command' ? 'Copied' : 'Copy command'}
-                </button>
-
-                <div class="section-title">Prompt template</div>
-                <pre class="code-box"><code>{agentPrompt}</code></pre>
-                <button class="btn" type="button" onClick={function () { copyWithStatus('agent-prompt', agentPrompt); }}>
-                  {copied === 'agent-prompt' ? 'Copied' : 'Copy prompt'}
-                </button>
-              </div>
-            )}
-
-            {route === 'code' && (
-              <>
-                <div class="section">
-                  <div class="row">
-                    <div class="field">
-                      <label class="label">Format</label>
-                      <select class="select" value={exportFormat} onChange={function (e) {
-                        setExportFormat((e.currentTarget as HTMLSelectElement).value as ExportFormat);
-                      }}>
-                        {EXPORT_FORMATS.map(function (fmt) {
-                          return <option key={fmt} value={fmt}>{fmt.toUpperCase()}</option>;
-                        })}
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label class="label">Naming</label>
-                      <select class="select" value={namingPreset} onChange={function (e) {
-                        setNamingPreset((e.currentTarget as HTMLSelectElement).value as NamingPreset);
-                      }}>
-                        {NAMING_PRESETS.map(function (preset) {
-                          return <option key={preset} value={preset}>{preset}</option>;
-                        })}
-                      </select>
-                    </div>
-                  </div>
-                  <div class="label">Filename: {exportMeta.filename}</div>
-                  <div class="label">Format: {exportMeta.format} · Naming: {exportMeta.naming}</div>
-                </div>
-
-                <div class="section">
-                  <pre class="code-box"><code>{code.length > 2200 ? code.slice(0, 2200) + '\n…' : code}</code></pre>
-                  <div class="row">
-                    <button class="btn" type="button" onClick={function () { copyWithStatus('code-copy', code); }}>
-                      {copied === 'code-copy' ? 'Copied' : 'Copy code'}
-                    </button>
-                    <button
-                      class="btn"
-                      type="button"
-                      onClick={function () {
-                        downloadText(exportFilename(exportFormat, namingPreset), code, 'text/plain;charset=utf-8');
-                      }}
-                    >
-                      Download
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {route === 'figma' && (
-              <div class="section">
-                <div class="section-title">Import to Figma Variables</div>
-                <div class="field">
-                  <label class="label">Naming</label>
-                  <select class="select" value={namingPreset} onChange={function (e) {
-                    setNamingPreset((e.currentTarget as HTMLSelectElement).value as NamingPreset);
-                  }}>
-                    {NAMING_PRESETS.map(function (preset) {
-                      return <option key={preset} value={preset}>{preset}</option>;
-                    })}
-                  </select>
-                </div>
-                <ol class="label" style="margin:0;padding-left:16px;display:flex;flex-direction:column;gap:4px;">
-                  <li>Generate with current settings.</li>
-                  <li>Apply variables to local collection.</li>
-                  <li>Use role/step variables in components.</li>
-                </ol>
-                <button
-                  class="btn primary"
-                  type="button"
+          <Text><Bold>History</Bold></Text>
+          <VerticalSpace space="small" />
+          {history.length === 0 && <Text>No history yet</Text>}
+          {history.map(function (hex) {
+            var active = settings.colorInput.toLowerCase() === hex.toLowerCase();
+            return (
+              <div key={hex} style="display:flex;gap:8px;margin-bottom:4px;">
+                <Button
+                  secondary={!active}
                   onClick={function () {
-                    emit('APPLY_VARIABLES', settings, namingPreset);
+                    onSetting('colorInput', hex);
+                  }}
+                  style="flex:1;"
+                >
+                  {hex}
+                </Button>
+                <Button
+                  secondary
+                  onClick={function () {
+                    removeHistory(hex);
                   }}
                 >
-                  Apply Variables
-                </button>
+                  ×
+                </Button>
               </div>
-            )}
+            );
+          })}
+          <VerticalSpace space="small" />
+
+          <Button fullWidth onClick={sendGenerate}>Regenerate</Button>
+          <VerticalSpace space="extraSmall" />
+          <Button fullWidth secondary onClick={resetSettings}>Reset</Button>
+          <VerticalSpace space="extraSmall" />
+          <Button fullWidth secondary onClick={clearHistory}>Clear history</Button>
+          <VerticalSpace space="medium" />
+
+          <Button
+            fullWidth
+            onClick={function () {
+              emit('APPLY_VARIABLES', settings, namingPreset);
+            }}
+          >
+            Apply Variables
+          </Button>
+        </Container>
+      )}
+
+      {mainTab === 'preview' && (
+        <Container space="medium">
+          <Text>Preview tab - palette/UI/contrast views will be added</Text>
+        </Container>
+      )}
+
+      {mainTab === 'export' && (
+        <Container space="medium">
+          <Text>Export tab - agent/code/figma routes will be added</Text>
+        </Container>
+      )}
+
+      <VerticalSpace space="small" />
+      <Text>{status}</Text>
+      {generated && generated.warnings.map(function (warn) {
+        return (
+          <div key={warn.code + warn.message}>
+            <Text>{warn.code}: {warn.message}</Text>
           </div>
-        )}
-
-        <div class={isError ? 'status error' : 'status'}>{status}</div>
-        {generated && generated.warnings.map(function (warn) {
-          return (
-            <div key={warn.code + warn.message} class="warning">
-              {warn.code}: {warn.message}
-            </div>
-          );
-        })}
-      </main>
-
-      <footer class="footer-actions">
-        <button type="button" class="btn" onClick={sendGenerate}>Generate</button>
-        <button
-          type="button"
-          class="btn primary"
-          onClick={function () {
-            emit('APPLY_VARIABLES', settings, namingPreset);
-          }}
-        >
-          Apply Variables
-        </button>
-      </footer>
-    </div>
+        );
+      })}
+    </Container>
   );
 }
 
-export default function () {
-  render(<App />, document.getElementById('app')!);
-}
+export default render(Plugin);
