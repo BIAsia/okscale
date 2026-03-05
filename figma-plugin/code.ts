@@ -5,6 +5,7 @@ declare var figma: any;
 declare var __html__: string;
 
 type UiInbound =
+  | { type: 'ui-ready' }
   | { type: 'generate'; payload: PluginSettings }
   | { type: 'apply-variables'; payload: { settings: PluginSettings; namingPreset: NamingPreset } }
   | { type: 'close' };
@@ -116,10 +117,20 @@ function toMachineError(err: unknown): {
 
 figma.showUI(__html__, { width: 460, height: 700 });
 
+var bootTimeout = setTimeout(function () {
+  figma.notify('OKScale UI failed to boot. Please rebuild plugin and relaunch.');
+}, 1500);
+
 figma.ui.onmessage = function (msg: UiInbound) {
   if (!msg || !msg.type) return;
 
+  if (msg.type === 'ui-ready') {
+    clearTimeout(bootTimeout);
+    return;
+  }
+
   if (msg.type === 'close') {
+    clearTimeout(bootTimeout);
     figma.closePlugin();
     return;
   }

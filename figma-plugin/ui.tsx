@@ -7,6 +7,7 @@ import { oklchToRgb, parseColorInput, rgbToHex, rgbToOklch } from '../src/lib/co
 import type { PluginGenerated, PluginSettings } from './shared';
 
 type UiOutbound =
+  | { type: 'ui-ready' }
   | { type: 'generate'; payload: PluginSettings }
   | { type: 'apply-variables'; payload: { settings: PluginSettings; namingPreset: NamingPreset } }
   | { type: 'close' };
@@ -331,6 +332,10 @@ function App() {
       input.value = '';
     }
   }
+
+  useEffect(function () {
+    postMessage({ type: 'ui-ready' });
+  }, []);
 
   useEffect(function () {
     function onMessage(event: MessageEvent) {
