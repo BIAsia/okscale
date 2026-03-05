@@ -45,16 +45,20 @@ UI uses **3 main tabs** instead of web 3-column layout:
 npm run build:figma-plugin
 ```
 
-Build outputs:
+Build outputs (self-contained):
 
-- `figma-plugin/dist/code.js`
-- `figma-plugin/dist/ui.js`
+- `figma-plugin/dist/code.js` — plugin main thread logic
+- `figma-plugin/dist/ui.html` — inlined UI (CSS + JS bundled)
+- `figma-plugin/dist/manifest.json` — generated manifest
 
 ## Load in Figma
 
-1. Open Figma Desktop → Plugins → Development → Import plugin from manifest.
-2. Select `figma-plugin/manifest.json`.
-3. Run plugin: `OKScale Generator`.
+1. Run `npm run build:figma-plugin` to generate dist artifacts.
+2. Open Figma Desktop → Plugins → Development → Import plugin from manifest.
+3. Select `figma-plugin/dist/manifest.json` (not the root manifest).
+4. Run plugin: `OKScale Generator`.
+
+**Important:** Always import from `dist/manifest.json` after building. The UI is self-contained (no external script dependencies).
 
 ## Variable write behavior
 
