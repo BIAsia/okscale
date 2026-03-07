@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'preact/hooks';
 import { Footer } from '../components/Footer';
 import { Nav } from '../components/Nav';
+import { InteractiveLCHDemo } from '../components/InteractiveLCHDemo';
+import { GradientComparison } from '../components/GradientComparison';
+import { ScaleComparisonInteractive } from '../components/ScaleComparisonInteractive';
+import { HueShiftDemo } from '../components/HueShiftDemo';
 
 import '@shoelace-style/shoelace/dist/themes/light.css';
 import '@shoelace-style/shoelace/dist/components/badge/badge.js';
 import '@shoelace-style/shoelace/dist/components/button/button.js';
 import '@shoelace-style/shoelace/dist/components/card/card.js';
 import '@shoelace-style/shoelace/dist/components/divider/divider.js';
+import '../styles/interactive-components.css';
 
 type DocsPageProps = {
   onNavigate: (to: string) => void;
@@ -254,6 +259,16 @@ export function DocsPage(props: DocsPageProps) {
                     <pre class="code-block docs-code-block">
                       <code>{section.code}</code>
                     </pre>
+                  )}
+
+                  {/* Interactive components for Why OKLCH section */}
+                  {section.id === 'why-oklch' && (
+                    <div class="docs-interactive-section flex flex-col gap-lg">
+                      <ScaleComparisonInteractive />
+                      <InteractiveLCHDemo />
+                      <GradientComparison />
+                      <HueShiftDemo />
+                    </div>
                   )}
                 </section>
               );
