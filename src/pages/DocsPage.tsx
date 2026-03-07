@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'preact/hooks';
 import { Footer } from '../components/Footer';
 import { Nav } from '../components/Nav';
+import { CodeBlock } from '../components/CodeBlock';
 
 type DocsPageProps = {
   onNavigate: (to: string) => void;
@@ -12,6 +13,7 @@ type DocSection = {
   desc: string;
   tags: string[];
   code: string;
+  language: string;
 };
 
 var DOC_SECTIONS: DocSection[] = [
@@ -20,6 +22,7 @@ var DOC_SECTIONS: DocSection[] = [
     title: 'CSS Variables',
     desc: 'Paste generated variables and consume with semantic aliases.',
     tags: ['css', 'variables', 'tokens', 'styles'],
+    language: 'css',
     code: `:root {
   --primary-50: #f3f7ff;
   --primary-500: #3b82f6;
@@ -36,6 +39,7 @@ var DOC_SECTIONS: DocSection[] = [
     title: 'Tailwind',
     desc: 'Extend your theme colors with numeric or semantic token scales.',
     tags: ['tailwind', 'utility', 'config'],
+    language: 'javascript',
     code: `export default {
   theme: {
     extend: {
@@ -55,6 +59,7 @@ var DOC_SECTIONS: DocSection[] = [
     title: 'Design Tokens JSON',
     desc: 'Use W3C token shape in build pipelines and design tooling.',
     tags: ['json', 'w3c', 'tokens', 'pipeline'],
+    language: 'json',
     code: `{
   "$schema": "https://tr.designtokens.org/format/",
   "primary": {
@@ -67,6 +72,7 @@ var DOC_SECTIONS: DocSection[] = [
     title: 'Figma Variables',
     desc: 'Import JSON output into your Figma variable collection workflow.',
     tags: ['figma', 'variables', 'design'],
+    language: 'json',
     code: `{
   "collections": [
     {
@@ -116,22 +122,30 @@ export function DocsPage(props: DocsPageProps) {
           <p class="text-body text-muted">
             Searchable integration snippets for shipping OKScale tokens in production stacks.
           </p>
-          <div class="docs-search-row">
-            <input
-              class="text-code docs-search-input"
-              value={search}
-              onInput={function (event) {
-                setSearch((event.currentTarget as HTMLInputElement).value);
-              }}
-              placeholder="Search docs: tailwind, figma, css, tokens..."
-              spellcheck={false}
-            />
+          <div class="docs-search-row" role="search">
+            <div class="docs-search-wrapper">
+              <svg class="docs-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 14L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <input
+                class="text-code docs-search-input"
+                value={search}
+                onInput={function (event) {
+                  setSearch((event.currentTarget as HTMLInputElement).value);
+                }}
+                placeholder="Search docs: tailwind, figma, css, tokens..."
+                spellcheck={false}
+                aria-label="Search documentation"
+              />
+            </div>
             <button
               type="button"
               class="btn btn-secondary"
               onClick={function () {
                 setSearch('');
               }}
+              aria-label="Clear search"
             >
               Clear
             </button>
@@ -144,7 +158,7 @@ export function DocsPage(props: DocsPageProps) {
           <aside class="card docs-nav-card">
             <h2 class="text-body-lg">Navigation</h2>
             <p class="text-body text-muted">Jump to matching integration blocks.</p>
-            <div class="docs-nav-list">
+            <nav class="docs-nav-list" aria-label="Documentation sections">
               {visibleSections.map(function (section) {
                 return (
                   <a key={section.id} href={'#' + section.id} class="docs-nav-link text-code">
@@ -152,17 +166,17 @@ export function DocsPage(props: DocsPageProps) {
                   </a>
                 );
               })}
-            </div>
+            </nav>
           </aside>
 
           <div class="docs-content-grid">
             {visibleSections.length ? (
               visibleSections.map(function (section) {
                 return (
-                  <article key={section.id} id={section.id} class="card flex flex-col gap-sm">
+                  <article key={section.id} id={section.id} class="card docs-snippet-card flex flex-col gap-sm">
                     <h2 class="text-body-lg">{section.title}</h2>
                     <p class="text-body text-muted">{section.desc}</p>
-                    <pre class="code-block"><code>{section.code}</code></pre>
+                    <CodeBlock code={section.code} language={section.language} />
                   </article>
                 );
               })
