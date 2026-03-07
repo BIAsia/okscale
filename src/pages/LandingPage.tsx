@@ -164,15 +164,15 @@ function LandingContent(props: { onNavigate: (to: string) => void }) {
       <div class="landing-content-right">
         <div class="landing-link-group">
           <h2 class="landing-link-title">How it works</h2>
-          <a class="landing-link" href="/docs" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs'); }}>Why oklch</a>
-          <a class="landing-link" href="/docs" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs'); }}>Shade strategy</a>
-          <a class="landing-link" href="/app" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/app'); }}>Ease-use Generator</a>
-          <a class="landing-link" href="/docs" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs'); }}>Figma integration</a>
+          <a class="landing-link" href="/docs#why-oklch" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs#why-oklch'); }}>Why oklch</a>
+          <a class="landing-link" href="/docs#shade-strategy" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs#shade-strategy'); }}>Shade strategy</a>
+          <a class="landing-link" href="/docs#quick-start" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs#quick-start'); }}>Generator guide</a>
+          <a class="landing-link" href="/docs#figma-integration" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs#figma-integration'); }}>Figma integration</a>
         </div>
         <div class="landing-link-group">
           <h2 class="landing-link-title">Behind the tool</h2>
           <a class="landing-link" href="https://github.com/BIAsia/okscale" target="_blank" rel="noreferrer">Made by <strong>openclaw</strong></a>
-          <a class="landing-link" href="https://github.com/BIAsia/okscale" target="_blank" rel="noreferrer">Updates</a>
+          <a class="landing-link" href="/docs#updates" onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs#updates'); }}>Updates</a>
         </div>
       </div>
     </div>
@@ -203,14 +203,20 @@ function LandingFooter(props: { onNavigate: (to: string) => void }) {
       <div class="landing-footer-cell">
         <a
           class="landing-footer-link"
-          href="/docs"
-          onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs'); }}
+          href="/docs#doc-hub"
+          onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs#doc-hub'); }}
         >
           Doc hub
         </a>
       </div>
       <div class="landing-footer-cell">
-        <a class="landing-footer-link" href="#">About the project</a>
+        <a
+          class="landing-footer-link"
+          href="/docs#about-okscale"
+          onClick={function (e: Event) { e.preventDefault(); props.onNavigate('/docs#about-okscale'); }}
+        >
+          About the project
+        </a>
       </div>
       <div class="landing-footer-cell">
         <div class="landing-footer-icons">
