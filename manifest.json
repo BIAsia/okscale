@@ -1,0 +1,1 @@
+{"api":"1.0.0","editorType":["figma"],"id":"okscale-generator-plugin","name":"OKScale Generator","main":"build/main.js","ui":"build/ui.js","relaunchButtons":[{"name":"Open OKScale Generator","command":"open"}]}
