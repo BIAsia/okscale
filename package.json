@@ -7,9 +7,25 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "build:figma-plugin": "build-figma-plugin --typecheck --minify",
+    "watch:figma-plugin": "build-figma-plugin --typecheck --watch",
     "cli": "tsx src/cli/okscale.ts",
     "mcp": "tsx src/mcp/okscale-mcp.ts",
     "test:core": "tsx --test src/core/service.test.ts src/server/http.test.ts src/mcp/tools.test.ts src/mcp/client-smoke.test.ts"
+  },
+  "figma-plugin": {
+    "editorType": ["figma"],
+    "id": "okscale-generator-plugin",
+    "name": "OKScale Generator",
+    "main": "figma-plugin/main.ts",
+    "ui": "figma-plugin/ui.tsx",
+    "relaunchButtons": {
+      "open": {
+        "name": "Open OKScale Generator",
+        "main": "figma-plugin/main.ts",
+        "ui": "figma-plugin/ui.tsx"
+      }
+    }
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
@@ -17,8 +33,12 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@create-figma-plugin/build": "^4.0.3",
+    "@create-figma-plugin/ui": "^4.0.3",
+    "@create-figma-plugin/utilities": "^4.0.3",
     "@preact/preset-vite": "^2.10.2",
     "@types/node": "^22.15.30",
+    "esbuild": "^0.25.10",
     "tsx": "^4.20.5",
     "typescript": "^5.8.2",
     "vite": "^5.4.11"

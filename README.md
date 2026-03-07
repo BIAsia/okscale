@@ -63,6 +63,18 @@ Run core tests:
 npm run test:core
 ```
 
+## Figma Plugin (in this repo)
+
+A Generator-aligned Figma plugin scaffold lives in `figma-plugin/` and reuses shared core logic.
+
+Build plugin bundle:
+
+```bash
+npm run build:figma-plugin
+```
+
+Then import `figma-plugin/manifest.json` in Figma Development plugins.
+
 ## Notes
 
 - Core color conversion and gamut mapping live in `src/lib/color.ts`.

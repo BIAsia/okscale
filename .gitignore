@@ -1,5 +1,8 @@
 node_modules
 dist
+build
+figma-plugin/dist
+manifest.json
 .DS_Store
 package-lock.json
 figma-homepage.png
