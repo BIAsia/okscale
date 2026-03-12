@@ -24,6 +24,7 @@ type HubSection = {
   paragraphs: string[];
   bullets?: string[];
   code?: string;
+  codeLang?: string;
   note?: string;
 };
 
@@ -116,7 +117,8 @@ var HUB_SECTIONS: HubSection[] = [
       'HTTP: POST /api/generate, POST /api/export, GET /api/schema',
       'MCP: generate_palette, export_tokens, decode_share_url, validate_color'
     ],
-    code: "curl -sS -X POST \"https://<your-domain>/api/generate\" \\\n  -H \"content-type: application/json\" \\\n  -d '{\"colorInput\":\"#3b82f6\",\"shadeMode\":\"natural\",\"harmonyType\":\"complementary\"}'"
+    code: "curl -sS -X POST \"https://<your-domain>/api/generate\" \\\n  -H \"content-type: application/json\" \\\n  -d '{\"colorInput\":\"#3b82f6\",\"shadeMode\":\"natural\",\"harmonyType\":\"complementary\"}'",
+    codeLang: 'bash'
   },
   {
     id: 'about-okscale',
@@ -137,6 +139,16 @@ var HUB_SECTIONS: HubSection[] = [
     ]
   }
 ];
+
+function parseBullet(text: string): preact.ComponentChildren[] {
+  var parts = text.split(/(`[^`]+`)/);
+  return parts.map(function (part, i) {
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+      return <code key={i} class="docs-inline-code">{part.slice(1, -1)}</code>;
+    }
+    return part;
+  });
+}
 
 export function DocsPage(props: DocsPageProps) {
   var activeState = useState(HUB_SECTIONS[0].id);
@@ -174,9 +186,12 @@ export function DocsPage(props: DocsPageProps) {
 
       <section class="section docs-hero">
         <div class="section-inner flex flex-col gap-md">
-          <p class="docs-kicker text-code">Documentation</p>
-          <h1 class="text-section">Doc Hub</h1>
-          <p class="text-body text-muted">
+          <div class="docs-hero-meta">
+            <p class="docs-kicker text-code">Documentation</p>
+            <span class="docs-hero-badge">{HUB_SECTIONS.length} sections</span>
+          </div>
+          <h1 class="docs-hero-title">Doc Hub</h1>
+          <p class="docs-hero-desc">
             The main guide for OKScale strategy, generation workflow, exports, and integration.
           </p>
 
@@ -202,26 +217,28 @@ export function DocsPage(props: DocsPageProps) {
 
       <section class="section docs-layout-section">
         <div class="section-inner docs-shell">
+
+          {/* Left sidebar: section nav */}
           <sl-card class="docs-panel docs-sidebar docs-sidebar--left">
-            <h2 class="text-body-lg">On this page</h2>
-            <div class="docs-nav-list">
-              {HUB_SECTIONS.map(function (section) {
+            <p class="docs-sidebar-heading">On this page</p>
+            <nav class="docs-nav-list" aria-label="Page sections">
+              {HUB_SECTIONS.map(function (section, idx) {
                 var active = section.id === activeId;
                 return (
-                  <sl-button
+                  <a
                     key={section.id}
                     href={'#' + section.id}
-                    size="small"
-                    variant={active ? 'primary' : 'text'}
-                    class="docs-nav-item"
+                    class={'docs-nav-item' + (active ? ' docs-nav-item--active' : '')}
                   >
-                    {section.title}
-                  </sl-button>
+                    <span class="docs-nav-num">{String(idx + 1).padStart(2, '0')}</span>
+                    <span class="docs-nav-label">{section.title}</span>
+                  </a>
                 );
               })}
-            </div>
+            </nav>
           </sl-card>
 
+          {/* Main content */}
           <sl-card class="docs-panel docs-main">
             {HUB_SECTIONS.map(function (section, idx) {
               return (
@@ -229,17 +246,20 @@ export function DocsPage(props: DocsPageProps) {
                   {idx > 0 ? <sl-divider></sl-divider> : null}
 
                   <div class="docs-section-head">
-                    <h2 class="text-sub">{section.title}</h2>
+                    <div class="docs-section-title-group">
+                      <span class="docs-section-num">{String(idx + 1).padStart(2, '0')}</span>
+                      <h2 class="docs-section-title">{section.title}</h2>
+                    </div>
                     <a class="docs-anchor-link" href={'#' + section.id} aria-label={'Link to ' + section.title}>
-                      <sl-badge pill variant="neutral" class="docs-anchor-badge">#</sl-badge>
+                      <span class="docs-anchor-icon">#</span>
                     </a>
                   </div>
 
-                  <p class="text-body text-muted">{section.summary}</p>
+                  <p class="docs-summary">{section.summary}</p>
 
                   {section.paragraphs.map(function (p, pidx) {
                     return (
-                      <p key={section.id + '-p-' + pidx} class="text-body docs-paragraph">
+                      <p key={section.id + '-p-' + pidx} class="docs-paragraph">
                         {p}
                       </p>
                     );
@@ -248,22 +268,40 @@ export function DocsPage(props: DocsPageProps) {
                   {section.bullets && section.bullets.length > 0 && (
                     <ul class="docs-list">
                       {section.bullets.map(function (item, bidx) {
-                        return <li key={section.id + '-b-' + bidx}>{item}</li>;
+                        return (
+                          <li key={section.id + '-b-' + bidx}>
+                            {parseBullet(item)}
+                          </li>
+                        );
                       })}
                     </ul>
                   )}
 
-                  {section.note && <p class="docs-note text-code">{section.note}</p>}
-
-                  {section.code && (
-                    <pre class="code-block docs-code-block">
-                      <code>{section.code}</code>
-                    </pre>
+                  {section.note && (
+                    <div class="docs-callout">
+                      <span class="docs-callout-icon">→</span>
+                      <p class="docs-callout-text">{section.note}</p>
+                    </div>
                   )}
 
-                  {/* Interactive components for Why OKLCH section */}
+                  {section.code && (
+                    <div class="docs-code-wrapper">
+                      <div class="docs-code-header">
+                        <span class="docs-code-lang">{section.codeLang ?? 'code'}</span>
+                      </div>
+                      <pre class="code-block docs-code-block">
+                        <code>{section.code}</code>
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Interactive demos for Why OKLCH section */}
                   {section.id === 'why-oklch' && (
-                    <div class="docs-interactive-section flex flex-col gap-lg">
+                    <div class="docs-interactive-section">
+                      <div class="docs-interactive-header">
+                        <span class="docs-interactive-dot"></span>
+                        <span class="docs-interactive-label">Interactive demos</span>
+                      </div>
                       <ScaleComparisonInteractive />
                       <InteractiveLCHDemo />
                       <GradientComparison />
@@ -275,18 +313,25 @@ export function DocsPage(props: DocsPageProps) {
             })}
           </sl-card>
 
+          {/* Right sidebar: quick actions */}
           <sl-card class="docs-panel docs-sidebar docs-sidebar--right">
-            <h2 class="text-body-lg">Quick Actions</h2>
-            <p class="text-body text-muted">Jump into product workflows directly.</p>
-            <div class="docs-quick-actions">
-              <sl-button variant="primary" onClick={function () { props.onNavigate('/app'); }}>
-                Open Generator
-              </sl-button>
-              <sl-button variant="default" onClick={function () { props.onNavigate('/'); }}>
-                Back to Landing
-              </sl-button>
+            <div class="flex flex-col gap-md">
+              <div>
+                <p class="docs-sidebar-cta-eyebrow">Quick Actions</p>
+                <p class="docs-sidebar-cta-title">Open the Generator</p>
+                <p class="docs-sidebar-cta-desc">Input a brand color, tune controls, export in one route.</p>
+              </div>
+              <div class="docs-quick-actions">
+                <sl-button variant="primary" onClick={function () { props.onNavigate('/app'); }}>
+                  Open Generator
+                </sl-button>
+                <sl-button variant="default" onClick={function () { props.onNavigate('/'); }}>
+                  Back to Landing
+                </sl-button>
+              </div>
             </div>
           </sl-card>
+
         </div>
       </section>
 
