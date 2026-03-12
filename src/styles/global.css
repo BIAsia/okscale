@@ -261,6 +261,23 @@ body {
 
 .docs-page {
   background: var(--ok-neutral-100);
+  --sl-font-sans: 'JetBrains Mono', monospace;
+  --sl-input-font-family: 'JetBrains Mono', monospace;
+  --sl-color-primary-50: var(--ok-primary-50);
+  --sl-color-primary-100: var(--ok-primary-100);
+  --sl-color-primary-500: var(--ok-primary-500);
+  --sl-color-primary-600: var(--ok-primary-600);
+  --sl-color-primary-700: var(--ok-primary-700);
+  --sl-color-primary-900: var(--ok-primary-900);
+  --sl-color-neutral-0: var(--ok-neutral-50);
+  --sl-color-neutral-100: var(--ok-neutral-100);
+  --sl-color-neutral-200: var(--ok-neutral-200);
+  --sl-color-neutral-300: var(--ok-neutral-300);
+  --sl-color-neutral-500: var(--ok-neutral-500);
+  --sl-color-neutral-700: var(--ok-neutral-700);
+  --sl-color-neutral-900: var(--ok-neutral-900);
+  --sl-border-radius-medium: 10px;
+  --sl-border-radius-large: 14px;
 }
 
 .docs-hero {
@@ -268,33 +285,45 @@ body {
   padding-bottom: 24px;
 }
 
-.docs-search-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+.docs-kicker {
+  margin: 0;
+  color: var(--ok-neutral-500);
 }
 
-.docs-search-input {
-  flex: 1;
-  min-width: 280px;
-  border: 1px solid var(--ok-neutral-300);
-  border-radius: 10px;
-  padding: 12px 14px;
+.docs-mini-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.docs-chip::part(base) {
+  border-color: var(--ok-neutral-200);
   background: var(--ok-neutral-50);
+  color: var(--ok-neutral-900);
 }
 
 .docs-layout-section {
   padding-top: 16px;
 }
 
-.docs-layout {
+.docs-shell {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr) 220px;
   gap: 16px;
   align-items: start;
 }
 
-.docs-nav-card {
+.docs-panel::part(base) {
+  box-shadow: none;
+  border: 1px solid var(--ok-neutral-200);
+  background: var(--ok-neutral-50);
+}
+
+.docs-panel::part(body) {
+  padding: 16px;
+}
+
+.docs-sidebar {
   position: sticky;
   top: 104px;
   display: flex;
@@ -308,28 +337,82 @@ body {
   gap: 8px;
 }
 
-.docs-nav-link {
-  color: var(--ok-neutral-900);
-  text-decoration: none;
-  border: 1px solid var(--ok-neutral-200);
-  border-radius: 10px;
-  padding: 8px 10px;
-  background: var(--ok-neutral-50);
+.docs-nav-item::part(base) {
+  width: 100%;
+  justify-content: flex-start;
+  border-color: var(--ok-neutral-200);
 }
 
-.docs-nav-link:hover {
-  border-color: var(--ok-highlight-text);
-  color: var(--ok-highlight-text);
+.docs-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.docs-content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.docs-main sl-divider::part(base) {
+  border-top-color: var(--ok-neutral-200);
+}
+
+.docs-section-block {
+  scroll-margin-top: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.docs-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
-.docs-content-grid .code-block {
-  max-height: 280px;
+.docs-anchor-link {
+  text-decoration: none;
+}
+
+.docs-anchor-badge::part(base) {
+  background: var(--ok-neutral-100);
+  border-color: var(--ok-neutral-200);
+  color: var(--ok-neutral-500);
+}
+
+.docs-anchor-link:hover .docs-anchor-badge::part(base) {
+  color: var(--ok-highlight-text);
+}
+
+.docs-paragraph {
+  margin: 0;
+}
+
+.docs-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--ok-neutral-700);
+}
+
+.docs-note {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ok-neutral-200);
+  border-radius: 8px;
+  background: var(--ok-neutral-50);
+  color: var(--ok-neutral-600);
+}
+
+.docs-code-block {
+  max-height: 320px;
+}
+
+.docs-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .workspace-layout-section {
@@ -952,18 +1035,25 @@ a:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .docs-layout,
-  .docs-content-grid {
+  .docs-shell {
     grid-template-columns: 1fr;
   }
 
-  .docs-nav-card {
+  .docs-sidebar {
     position: static;
   }
 
-  .docs-search-input {
-    min-width: 0;
-    width: 100%;
+  .docs-sidebar--right {
+    order: 3;
+  }
+
+  .docs-mini-nav {
+    gap: 6px;
+  }
+
+  .docs-chip::part(base) {
+    font-size: 11px;
+    padding: 5px 8px;
   }
 
   .compact-compare-grid {

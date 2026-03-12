@@ -1,210 +1,292 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { Footer } from '../components/Footer';
 import { Nav } from '../components/Nav';
+import { InteractiveLCHDemo } from '../components/InteractiveLCHDemo';
+import { GradientComparison } from '../components/GradientComparison';
+import { ScaleComparisonInteractive } from '../components/ScaleComparisonInteractive';
+import { HueShiftDemo } from '../components/HueShiftDemo';
+
+import '@shoelace-style/shoelace/dist/themes/light.css';
+import '@shoelace-style/shoelace/dist/components/badge/badge.js';
+import '@shoelace-style/shoelace/dist/components/button/button.js';
+import '@shoelace-style/shoelace/dist/components/card/card.js';
+import '@shoelace-style/shoelace/dist/components/divider/divider.js';
+import '../styles/interactive-components.css';
 
 type DocsPageProps = {
   onNavigate: (to: string) => void;
 };
 
-type DocSection = {
+type HubSection = {
   id: string;
   title: string;
-  desc: string;
-  tags: string[];
-  code: string;
+  summary: string;
+  paragraphs: string[];
+  bullets?: string[];
+  code?: string;
+  note?: string;
 };
 
-var DOC_SECTIONS: DocSection[] = [
+var HUB_SECTIONS: HubSection[] = [
   {
-    id: 'css-variables',
-    title: 'CSS Variables',
-    desc: 'Paste generated variables and consume with semantic aliases.',
-    tags: ['css', 'variables', 'tokens', 'styles'],
-    code: `:root {
-  --primary-50: #f3f7ff;
-  --primary-500: #3b82f6;
-  --primary-900: #0f2140;
-}
-
-.button-primary {
-  background: var(--primary-600);
-  color: var(--primary-50);
-}`
+    id: 'quick-start',
+    title: 'Quick Start',
+    summary: 'Generate a production-ready scale in under 3 minutes.',
+    paragraphs: [
+      'Go to Generator, input your source color, then tune shade strategy and harmony. If you are new, keep defaults and iterate with one control at a time.',
+      'Once the palette looks right, choose one delivery route in Export: Connect Agent, Export Code, or Import to Figma.'
+    ],
+    bullets: [
+      'Input accepts hex, rgb(), hsl(), and oklch().',
+      'Core controls: shade mode, harmony type, anchor behavior, neutral mode.',
+      'Use Contrast tab before handoff to validate readable pairings.'
+    ]
   },
   {
-    id: 'tailwind',
-    title: 'Tailwind',
-    desc: 'Extend your theme colors with numeric or semantic token scales.',
-    tags: ['tailwind', 'utility', 'config'],
-    code: `export default {
-  theme: {
-    extend: {
-      colors: {
-        primary: {
-          '50': '#f3f7ff',
-          '500': '#3b82f6',
-          '900': '#0f2140'
-        }
-      }
-    }
-  }
-};`
+    id: 'why-oklch',
+    title: 'Why OKLCH',
+    summary: 'Perceptual consistency is the core reason to use OKLCH in system design.',
+    paragraphs: [
+      'In non-perceptual spaces, equal numeric steps often look uneven. This creates unpredictable jumps between neighboring tokens.',
+      'OKLCH separates Lightness, Chroma, and Hue in a perceptual space, making ramps smoother and design intent easier to preserve.',
+      'For teams, this reduces manual correction across states, improves token trust, and speeds up visual QA.'
+    ],
+    bullets: [
+      'L controls perceived brightness progression.',
+      'C controls color intensity in a stable way.',
+      'H controls hue direction without random side effects.'
+    ]
   },
   {
-    id: 'design-tokens',
-    title: 'Design Tokens JSON',
-    desc: 'Use W3C token shape in build pipelines and design tooling.',
-    tags: ['json', 'w3c', 'tokens', 'pipeline'],
-    code: `{
-  "$schema": "https://tr.designtokens.org/format/",
-  "primary": {
-    "500": { "value": "#3b82f6", "type": "color" }
-  }
-}`
+    id: 'shade-strategy',
+    title: 'Shade Strategy',
+    summary: 'Choose strategy by behavior target, not by aesthetic preference alone.',
+    paragraphs: [
+      'Shade mode defines hue drift over the light-dark ramp. Anchor behavior defines how strictly your input color is preserved at the nearest lightness step.',
+      'Neutral mode controls whether neutral ramp keeps source hue influence or trends to absolute gray.'
+    ],
+    bullets: [
+      '`none`: minimal hue drift, best for strict brand lock.',
+      '`natural`: balanced default for most UI products.',
+      '`warm` / `cool`: intentional temperature movement.',
+      '`preserve-input`: keeps exact source color on anchor step.',
+      '`auto-gamut`: remaps when exact anchor is not display-safe.'
+    ],
+    note: 'Rule of thumb: start with natural + preserve-input, then change only one switch at a time.'
   },
   {
-    id: 'figma-variables',
-    title: 'Figma Variables',
-    desc: 'Import JSON output into your Figma variable collection workflow.',
-    tags: ['figma', 'variables', 'design'],
-    code: `{
-  "collections": [
-    {
-      "name": "OKScale",
-      "modes": ["Light"],
-      "variables": [
-        {
-          "name": "primary",
-          "type": "COLOR",
-          "valuesByMode": { "Light": { "500": "#3b82f6" } }
-        }
-      ]
-    }
-  ]
-}`
+    id: 'generator-guide',
+    title: 'Generator Guide',
+    summary: 'Understand panels and outputs to avoid accidental choices.',
+    paragraphs: [
+      'Left panel is generation control: source color, sliders, strategy toggles, history, and image extraction.',
+      'Center panel is quality readout: full scales, component preview, and contrast-use scenarios.',
+      'Right panel is route-first export, designed for direct execution or handoff.'
+    ],
+    bullets: [
+      'History chips keep iteration loops short.',
+      'Image upload gives a fast starter direction from artwork.',
+      'UI preview helps validate practical component states before export.'
+    ]
+  },
+  {
+    id: 'figma-integration',
+    title: 'Figma Integration',
+    summary: 'Use non-code import path for design-side variable workflows.',
+    paragraphs: [
+      'In Export route, choose Import to Figma and download Variables JSON.',
+      'Import into Figma Variables panel, then verify role groups and key steps before binding components.'
+    ],
+    bullets: [
+      'Open Variables panel in Figma.',
+      'Import downloaded JSON.',
+      'Confirm groups: primary / secondary / accent / neutral.'
+    ]
+  },
+  {
+    id: 'agent-integration',
+    title: 'Agent Integration',
+    summary: 'Machine-facing interfaces are stable across CLI, HTTP, and MCP.',
+    paragraphs: [
+      'OKScale exposes consistent request and response contracts so automation clients can safely call generation and export flows.',
+      'Use CLI for local scripting, HTTP for service calls, and MCP for agent-native tool execution.'
+    ],
+    bullets: [
+      'CLI: npm run cli -- generate | export | schema',
+      'HTTP: POST /api/generate, POST /api/export, GET /api/schema',
+      'MCP: generate_palette, export_tokens, decode_share_url, validate_color'
+    ],
+    code: "curl -sS -X POST \"https://<your-domain>/api/generate\" \\\n  -H \"content-type: application/json\" \\\n  -d '{\"colorInput\":\"#3b82f6\",\"shadeMode\":\"natural\",\"harmonyType\":\"complementary\"}'"
+  },
+  {
+    id: 'about-okscale',
+    title: 'About the Project',
+    summary: 'OKScale is built for practical design-engineering handoff.',
+    paragraphs: [
+      'The project focuses on predictable ramps, route-first delivery, and machine-friendly integration. It is intentionally opinionated around production workflows.',
+      'Source repository and updates are public and linked from landing.'
+    ]
+  },
+  {
+    id: 'updates',
+    title: 'Updates',
+    summary: 'Recent milestones and behavior changes.',
+    paragraphs: [
+      'Recent releases added full agent-facing interfaces (CLI + HTTP + MCP), stabilized export contracts, and simplified Generator export UX.',
+      'Track latest changes in the repository commits and release notes.'
+    ]
   }
 ];
 
-function includesQuery(section: DocSection, query: string): boolean {
-  if (!query) return true;
-  var normalized = query.toLowerCase();
-  if (section.title.toLowerCase().indexOf(normalized) >= 0) return true;
-  if (section.desc.toLowerCase().indexOf(normalized) >= 0) return true;
-  return section.tags.some(function (tag) {
-    return tag.indexOf(normalized) >= 0;
-  });
-}
-
 export function DocsPage(props: DocsPageProps) {
-  var searchState = useState('');
-  var search = searchState[0];
-  var setSearch = searchState[1];
+  var activeState = useState(HUB_SECTIONS[0].id);
+  var activeId = activeState[0];
+  var setActiveId = activeState[1];
 
-  var visibleSections = useMemo(function () {
-    return DOC_SECTIONS.filter(function (section) {
-      return includesQuery(section, search);
+  useEffect(function () {
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        });
+      },
+      {
+        rootMargin: '-20% 0px -60% 0px',
+        threshold: 0.01,
+      }
+    );
+
+    HUB_SECTIONS.forEach(function (section) {
+      var node = document.getElementById(section.id);
+      if (node) observer.observe(node);
     });
-  }, [search]);
+
+    return function () {
+      observer.disconnect();
+    };
+  }, []);
 
   return (
-    <div class="page-wrap docs-page">
+    <div class="page-wrap docs-page" id="doc-hub">
       <Nav mode="docs" onNavigate={props.onNavigate} />
 
       <section class="section docs-hero">
         <div class="section-inner flex flex-col gap-md">
-          <h1 class="text-section">Docs</h1>
+          <p class="docs-kicker text-code">Documentation</p>
+          <h1 class="text-section">Doc Hub</h1>
           <p class="text-body text-muted">
-            Searchable integration snippets for shipping OKScale tokens in production stacks.
+            The main guide for OKScale strategy, generation workflow, exports, and integration.
           </p>
-          <div class="docs-search-row">
-            <input
-              class="text-code docs-search-input"
-              value={search}
-              onInput={function (event) {
-                setSearch((event.currentTarget as HTMLInputElement).value);
-              }}
-              placeholder="Search docs: tailwind, figma, css, tokens..."
-              spellcheck={false}
-            />
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onClick={function () {
-                setSearch('');
-              }}
-            >
-              Clear
-            </button>
-          </div>
+
+          <nav class="docs-mini-nav" aria-label="Doc section quick links">
+            {HUB_SECTIONS.map(function (section) {
+              var active = section.id === activeId;
+              return (
+                <sl-button
+                  key={section.id}
+                  href={'#' + section.id}
+                  size="small"
+                  pill
+                  variant={active ? 'primary' : 'default'}
+                  class="docs-chip"
+                >
+                  {section.title}
+                </sl-button>
+              );
+            })}
+          </nav>
         </div>
       </section>
 
       <section class="section docs-layout-section">
-        <div class="section-inner docs-layout">
-          <aside class="card docs-nav-card">
-            <h2 class="text-body-lg">Navigation</h2>
-            <p class="text-body text-muted">Jump to matching integration blocks.</p>
+        <div class="section-inner docs-shell">
+          <sl-card class="docs-panel docs-sidebar docs-sidebar--left">
+            <h2 class="text-body-lg">On this page</h2>
             <div class="docs-nav-list">
-              {visibleSections.map(function (section) {
+              {HUB_SECTIONS.map(function (section) {
+                var active = section.id === activeId;
                 return (
-                  <a key={section.id} href={'#' + section.id} class="docs-nav-link text-code">
+                  <sl-button
+                    key={section.id}
+                    href={'#' + section.id}
+                    size="small"
+                    variant={active ? 'primary' : 'text'}
+                    class="docs-nav-item"
+                  >
                     {section.title}
-                  </a>
+                  </sl-button>
                 );
               })}
             </div>
-          </aside>
+          </sl-card>
 
-          <div class="docs-content-grid">
-            {visibleSections.length ? (
-              visibleSections.map(function (section) {
-                return (
-                  <article key={section.id} id={section.id} class="card flex flex-col gap-sm">
-                    <h2 class="text-body-lg">{section.title}</h2>
-                    <p class="text-body text-muted">{section.desc}</p>
-                    <pre class="code-block"><code>{section.code}</code></pre>
-                  </article>
-                );
-              })
-            ) : (
-              <article class="card flex flex-col gap-sm">
-                <h2 class="text-body-lg">No matching snippets</h2>
-                <p class="text-body text-muted">Try a broader keyword like "css", "tailwind", "tokens", or "figma".</p>
-              </article>
-            )}
-          </div>
-        </div>
-      </section>
+          <sl-card class="docs-panel docs-main">
+            {HUB_SECTIONS.map(function (section, idx) {
+              return (
+                <section key={section.id} id={section.id} class="docs-section-block">
+                  {idx > 0 ? <sl-divider></sl-divider> : null}
 
-      <section class="section docs-cta">
-        <div class="section-inner">
-          <article class="card-dark flex flex-col gap-md">
-            <h2 class="text-sub">Need a full token pack?</h2>
-            <p class="text-body" style="color: var(--ok-neutral-200);">
-              Open workspace, tune your brand color, and export all formats from one panel.
-            </p>
-            <div class="flex gap-sm cta-actions" style="flex-wrap: wrap;">
-              <button
-                type="button"
-                class="btn btn-accent"
-                onClick={function () {
-                  props.onNavigate('/app');
-                }}
-              >
-                Open Workspace
-              </button>
-              <button
-                type="button"
-                class="btn btn-secondary"
-                style="border-color: var(--ok-neutral-50); color: var(--ok-neutral-50);"
-                onClick={function () {
-                  props.onNavigate('/');
-                }}
-              >
+                  <div class="docs-section-head">
+                    <h2 class="text-sub">{section.title}</h2>
+                    <a class="docs-anchor-link" href={'#' + section.id} aria-label={'Link to ' + section.title}>
+                      <sl-badge pill variant="neutral" class="docs-anchor-badge">#</sl-badge>
+                    </a>
+                  </div>
+
+                  <p class="text-body text-muted">{section.summary}</p>
+
+                  {section.paragraphs.map(function (p, pidx) {
+                    return (
+                      <p key={section.id + '-p-' + pidx} class="text-body docs-paragraph">
+                        {p}
+                      </p>
+                    );
+                  })}
+
+                  {section.bullets && section.bullets.length > 0 && (
+                    <ul class="docs-list">
+                      {section.bullets.map(function (item, bidx) {
+                        return <li key={section.id + '-b-' + bidx}>{item}</li>;
+                      })}
+                    </ul>
+                  )}
+
+                  {section.note && <p class="docs-note text-code">{section.note}</p>}
+
+                  {section.code && (
+                    <pre class="code-block docs-code-block">
+                      <code>{section.code}</code>
+                    </pre>
+                  )}
+
+                  {/* Interactive components for Why OKLCH section */}
+                  {section.id === 'why-oklch' && (
+                    <div class="docs-interactive-section flex flex-col gap-lg">
+                      <ScaleComparisonInteractive />
+                      <InteractiveLCHDemo />
+                      <GradientComparison />
+                      <HueShiftDemo />
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </sl-card>
+
+          <sl-card class="docs-panel docs-sidebar docs-sidebar--right">
+            <h2 class="text-body-lg">Quick Actions</h2>
+            <p class="text-body text-muted">Jump into product workflows directly.</p>
+            <div class="docs-quick-actions">
+              <sl-button variant="primary" onClick={function () { props.onNavigate('/app'); }}>
+                Open Generator
+              </sl-button>
+              <sl-button variant="default" onClick={function () { props.onNavigate('/'); }}>
                 Back to Landing
-              </button>
+              </sl-button>
             </div>
-          </article>
+          </sl-card>
         </div>
       </section>
 
