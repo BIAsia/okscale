@@ -33,7 +33,7 @@ export function HueShiftDemo() {
   }));
 
   return (
-    <article class="card hue-shift-demo flex flex-col gap-md">
+    <article class="hue-shift-demo flex flex-col gap-md">
       <div class="flex flex-col gap-sm">
         <h3 class="text-body-lg">Natural Hue Shift</h3>
         <p class="text-body text-muted">
@@ -150,8 +150,8 @@ export function HueShiftDemo() {
                 return `${x},${y}`;
               }).join(' ')}
               fill="none"
-              stroke="var(--ok-highlight)"
-              stroke-width="3"
+              stroke="var(--ok-neutral-900)"
+              stroke-width="2.5"
             />
 
             {/* Points */}

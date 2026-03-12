@@ -50,7 +50,7 @@ export function GradientComparison() {
   const endHex = rgbToHex(rgbEnd);
 
   return (
-    <article class="card gradient-comparison flex flex-col gap-md">
+    <article class="gradient-comparison flex flex-col gap-md">
       <div class="flex flex-col gap-sm">
         <h3 class="text-body-lg">Gradient Interpolation: RGB vs OKLCH</h3>
         <p class="text-body text-muted">
