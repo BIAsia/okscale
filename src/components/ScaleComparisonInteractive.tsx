@@ -31,7 +31,7 @@ export function ScaleComparisonInteractive() {
   const improvement = ((hslVariance - oklchVariance) / hslVariance * 100).toFixed(1);
 
   return (
-    <article class="card scale-comparison-interactive flex flex-col gap-md">
+    <article class="scale-comparison-interactive flex flex-col gap-md">
       <div class="flex flex-col gap-sm">
         <h3 class="text-body-lg">Scale Uniformity: HSL vs OKLCH</h3>
         <p class="text-body text-muted">

@@ -38,7 +38,7 @@ export function InteractiveLCHDemo() {
   });
 
   return (
-    <article class="card interactive-lch-demo flex flex-col gap-md">
+    <article class="interactive-lch-demo flex flex-col gap-md">
       <div class="flex flex-col gap-sm">
         <h3 class="text-body-lg">Interactive OKLCH Control</h3>
         <p class="text-body text-muted">
