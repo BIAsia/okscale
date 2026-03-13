@@ -14,6 +14,12 @@ export type ApplyVariablesMsg = {
   palette: SerializedPalette;
 };
 
+/** UI → Plugin: apply a single color fill to the currently selected node(s) */
+export type ApplyFillMsg = {
+  type: 'apply-fill';
+  hex: string;
+};
+
 /** UI → Plugin: resize the plugin window */
 export type ResizeMsg = {
   type: 'resize';
@@ -28,7 +34,7 @@ export type NotifyMsg = {
   error?: boolean;
 };
 
-export type PluginMessage = ApplyStylesMsg | ApplyVariablesMsg | ResizeMsg;
+export type PluginMessage = ApplyStylesMsg | ApplyVariablesMsg | ApplyFillMsg | ResizeMsg;
 export type UIMessage = NotifyMsg;
 
 /** Serialized palette to transfer over postMessage */
