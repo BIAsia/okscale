@@ -104,6 +104,29 @@ async function applyVariables(palette: SerializedPalette) {
   });
 }
 
+// ── Apply fill to selected node ──
+
+function applyFillToSelection(hex: string) {
+  const selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    figma.ui.postMessage({ type: 'notify', message: 'No node selected. Color copied to clipboard instead.', error: false });
+    return;
+  }
+  const rgb = hexToFigmaRgb(hex);
+  let applied = 0;
+  for (const node of selection) {
+    if ('fills' in node) {
+      (node as GeometryMixin).fills = [{ type: 'SOLID', color: rgb }];
+      applied++;
+    }
+  }
+  if (applied > 0) {
+    figma.ui.postMessage({ type: 'notify', message: `Fill applied to ${applied} node${applied > 1 ? 's' : ''}.` });
+  } else {
+    figma.ui.postMessage({ type: 'notify', message: 'Selected node does not support fills.', error: true });
+  }
+}
+
 // ── Message handler ──
 
 figma.ui.onmessage = async (msg: PluginMessage) => {
@@ -118,6 +141,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       await applyVariables(msg.palette);
     } catch (err: any) {
       figma.ui.postMessage({ type: 'notify', message: 'Failed to apply variables: ' + err.message, error: true });
+    }
+  } else if (msg.type === 'apply-fill') {
+    try {
+      applyFillToSelection(msg.hex);
+    } catch (err: any) {
+      figma.ui.postMessage({ type: 'notify', message: 'Failed to apply fill: ' + err.message, error: true });
     }
   } else if (msg.type === 'resize') {
     figma.ui.resize(msg.width, msg.height);

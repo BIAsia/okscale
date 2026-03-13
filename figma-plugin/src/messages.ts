@@ -21,6 +21,12 @@ export type ResizeMsg = {
   height: number;
 };
 
+/** UI → Plugin: apply a color to the selected node's fill */
+export type ApplyFillMsg = {
+  type: 'apply-fill';
+  hex: string;
+};
+
 /** Plugin → UI: notify success/failure */
 export type NotifyMsg = {
   type: 'notify';
@@ -28,7 +34,7 @@ export type NotifyMsg = {
   error?: boolean;
 };
 
-export type PluginMessage = ApplyStylesMsg | ApplyVariablesMsg | ResizeMsg;
+export type PluginMessage = ApplyStylesMsg | ApplyVariablesMsg | ResizeMsg | ApplyFillMsg;
 export type UIMessage = NotifyMsg;
 
 /** Serialized palette to transfer over postMessage */
