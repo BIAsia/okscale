@@ -38,13 +38,14 @@ const uiBuild = {
 
 function buildHtml() {
   const js = readFileSync(resolve(__dirname, 'dist/ui.js'), 'utf8');
+  const dssCss = readFileSync(resolve(__dirname, 'node_modules/figma-plugin-ds/dist/figma-plugin-ds.css'), 'utf8');
   const css = readFileSync(resolve(__dirname, 'src/ui.css'), 'utf8');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<style>${css}</style>
+<style>${dssCss}${css}</style>
 </head>
 <body>
 <div id="app"></div>
