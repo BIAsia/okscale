@@ -1,6 +1,6 @@
-import type { PluginMessage, SerializedPalette, SerializedRole, SerializedScaleColor } from './messages';
+import type { PluginMessage, SerializedPalette, SerializedRole } from './messages';
 
-figma.showUI(__html__, { width: 420, height: 680, themeColors: true });
+figma.showUI(__html__, { width: 420, height: 700, themeColors: true });
 
 function hexToFigmaRgb(hex: string): RGB {
   const clean = hex.replace(/^#/, '');
@@ -17,11 +17,46 @@ function styleName(role: string, step: number): string {
 }
 
 function variableName(role: string, step: number): string {
-  return role + '-' + step;
+  return role + '/' + step;
 }
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ── Apply a single color fill to the currently selected node(s) ──
+
+function applyFillToSelection(hex: string) {
+  const selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    // No selection — just copy to clipboard via notify
+    figma.ui.postMessage({ type: 'notify', message: 'No selection. Color copied to clipboard.' });
+    return;
+  }
+
+  const rgb = hexToFigmaRgb(hex);
+  let applied = 0;
+
+  for (const node of selection) {
+    // Only apply to nodes that support fills
+    if ('fills' in node) {
+      const fills: Paint[] = [{ type: 'SOLID', color: rgb }];
+      (node as GeometryMixin).fills = fills;
+      applied++;
+    }
+  }
+
+  if (applied > 0) {
+    figma.ui.postMessage({
+      type: 'notify',
+      message: `Applied ${hex} to ${applied} node${applied > 1 ? 's' : ''}.`,
+    });
+  } else {
+    figma.ui.postMessage({
+      type: 'notify',
+      message: 'Selected nodes do not support fills. Color copied to clipboard.',
+    });
+  }
 }
 
 // ── Apply as Paint Styles ──
@@ -55,7 +90,7 @@ async function applyStyles(palette: SerializedPalette) {
 
   figma.ui.postMessage({
     type: 'notify',
-    message: `Color styles applied: ${created} created, ${updated} updated.`,
+    message: `Color styles: ${created} created, ${updated} updated.`,
   });
 }
 
@@ -100,26 +135,24 @@ async function applyVariables(palette: SerializedPalette) {
 
   figma.ui.postMessage({
     type: 'notify',
-    message: `Variables applied: ${created} created, ${updated} updated.`,
+    message: `Variables: ${created} created, ${updated} updated.`,
   });
 }
 
 // ── Message handler ──
 
 figma.ui.onmessage = async (msg: PluginMessage) => {
-  if (msg.type === 'apply-styles') {
-    try {
+  try {
+    if (msg.type === 'apply-fill') {
+      applyFillToSelection(msg.hex);
+    } else if (msg.type === 'apply-styles') {
       await applyStyles(msg.palette);
-    } catch (err: any) {
-      figma.ui.postMessage({ type: 'notify', message: 'Failed to apply styles: ' + err.message, error: true });
-    }
-  } else if (msg.type === 'apply-variables') {
-    try {
+    } else if (msg.type === 'apply-variables') {
       await applyVariables(msg.palette);
-    } catch (err: any) {
-      figma.ui.postMessage({ type: 'notify', message: 'Failed to apply variables: ' + err.message, error: true });
+    } else if (msg.type === 'resize') {
+      figma.ui.resize(msg.width, msg.height);
     }
-  } else if (msg.type === 'resize') {
-    figma.ui.resize(msg.width, msg.height);
+  } catch (err: any) {
+    figma.ui.postMessage({ type: 'notify', message: 'Error: ' + (err.message || String(err)), error: true });
   }
 };

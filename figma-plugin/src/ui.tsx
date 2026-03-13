@@ -1,4 +1,4 @@
-/* ── Minimal Preact-like h/render for Figma plugin (no dependencies) ── */
+/* ── Minimal vdom for Figma plugin (no dependencies) ── */
 
 type VNode = { tag: string | Function; props: any; children: any[] };
 type Child = VNode | string | number | null | undefined | boolean | Child[];
@@ -44,7 +44,6 @@ function createElement(vnode: Child): Node | null {
       el.addEventListener(key.slice(2).toLowerCase(), val as EventListener);
       continue;
     }
-    if (key === 'dangerouslySetInnerHTML') { el.innerHTML = (val as any).__html; continue; }
     if (typeof val === 'boolean') { if (val) el.setAttribute(key, ''); }
     else el.setAttribute(key, String(val));
   }
@@ -54,12 +53,12 @@ function createElement(vnode: Child): Node | null {
 
 /* ── Import color generation libs from parent src/lib ── */
 
-import { parseColorInput, rgbToHex, rgbToOklch, oklchToRgb, type Oklch } from '../../src/lib/color';
+import { parseColorInput, rgbToHex, rgbToOklch, oklchToRgb, gamutMapOklch, type Oklch } from '../../src/lib/color';
 import { generateFullPalette, type FullPalette, type NeutralMode } from '../../src/lib/palette';
 import { nearestScaleStepForLightness, type AnchorBehavior, type ScaleColor } from '../../src/lib/scale';
 import { type ShadeMode, SHADE_MODES } from '../../src/lib/shades';
 import { type HarmonyType, HARMONY_TYPES, generateHarmony, type HarmonyResult } from '../../src/lib/harmony';
-import { gradientFromHarmony, gradientFromHarmonyVivid, gradientFromPair, type GradientResult } from '../../src/lib/gradient';
+import { gradientFromHarmony, gradientFromHarmonyVivid, gradientFromPair, suggestGradients, type GradientResult } from '../../src/lib/gradient';
 import { buildUsageMatrix, contrastRatio, ratioGrade } from '../../src/lib/contrast';
 import { formatFullExport, EXPORT_FORMATS, NAMING_PRESETS, type ExportFormat, type NamingPreset } from '../../src/lib/export';
 import type { SerializedPalette, SerializedRole, NotifyMsg } from './messages';
@@ -79,6 +78,7 @@ type AppState = {
   localL: number;
   localC: number;
   localH: number;
+  lchOpen: boolean;
 };
 
 let state: AppState = {
@@ -94,6 +94,7 @@ let state: AppState = {
   localL: 0.5,
   localC: 0.15,
   localH: 180,
+  lchOpen: false,
 };
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -127,20 +128,37 @@ function computeDerived() {
     : null;
   const harmony = primaryOklch ? generateHarmony(primaryOklch, state.harmonyType) : null;
 
-  let gradients: GradientResult[] = [];
-  if (harmony && palette) {
+  // Build rich gradients — matching the web version
+  let gradients: Array<GradientResult & { name: string }> = [];
+  if (harmony && palette && primaryOklch) {
     const n50 = palette.neutral.scale.find((s) => s.step === 50);
     const n50Lch = n50 ? n50.lch : { l: 0.97, c: 0.005, h: palette.neutral.base.h };
+    const n950 = palette.neutral.scale.find((s) => s.step === 950);
+    const n950Lch = n950 ? n950.lch : { l: 0.15, c: 0.005, h: palette.neutral.base.h };
+
+    // Suggested harmony-based gradients
+    const harmGrad = gradientFromHarmony(harmony);
+    const harmVivid = gradientFromHarmonyVivid(harmony);
+    const toLight = gradientFromPair(primaryOklch, n50Lch);
+    const toDark = gradientFromPair(primaryOklch, n950Lch);
+
+    // suggestGradients gives complement, lightToDark, analogous, triadic
+    const suggested = suggestGradients(primaryOklch);
+
     gradients = [
-      gradientFromHarmony(harmony),
-      gradientFromHarmonyVivid(harmony),
-      gradientFromPair(palette.primary.base, n50Lch),
+      { ...harmGrad, name: 'Harmony' },
+      { ...harmVivid, name: 'Harmony Vivid' },
+      { ...toLight, name: 'Primary → Light' },
+      { ...toDark, name: 'Primary → Dark' },
+      { ...suggested[0], name: 'Complement' },
+      { ...suggested[2], name: 'Analogous' },
+      { ...suggested[3], name: 'Triadic' },
     ];
   }
 
   const colorError = parsedRgb
     ? ''
-    : state.colorInput.trim() ? 'Invalid color. Try #3b82f6, rgb(59,130,246), hsl(217,91%,60%), oklch(0.62 0.19 259).' : '';
+    : state.colorInput.trim() ? 'Invalid color format.' : '';
 
   const usageRows = palette ? buildUsageMatrix(palette.primary.scale) : [];
 
@@ -163,7 +181,7 @@ function serializePalette(palette: FullPalette): SerializedPalette {
   return { primary: role(palette.primary), secondary: role(palette.secondary), accent: role(palette.accent), neutral: role(palette.neutral) };
 }
 
-/* ── Copy helper ── */
+/* ── Helpers ── */
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).then(
@@ -172,10 +190,23 @@ function copyToClipboard(text: string) {
   );
 }
 
-/* ── Post message to plugin code ── */
-
 function postToPlugin(msg: any) {
   parent.postMessage({ pluginMessage: msg }, '*');
+}
+
+/** Click a color: apply fill to selected Figma node AND copy hex */
+function onColorClick(hex: string) {
+  // Copy hex to clipboard
+  navigator.clipboard.writeText(hex).catch(() => {});
+  // Send apply-fill to plugin sandbox — if there's a selection it applies, else notifies
+  postToPlugin({ type: 'apply-fill', hex });
+}
+
+/** Choose text color with good contrast against a background hex */
+function autoTextColor(bgHex: string): string {
+  const r1 = contrastRatio('#ffffff', bgHex);
+  const r2 = contrastRatio('#000000', bgHex);
+  return r1 > r2 ? '#ffffff' : '#000000';
 }
 
 /* ── Components ── */
@@ -218,82 +249,103 @@ function ColorInputSection(d: ReturnType<typeof computeDerived>) {
   );
 }
 
-function LCHSliders() {
+function LCHCollapsible() {
   function applyLCH(l: number, c: number, hue: number) {
     const hex = rgbToHex(oklchToRgb({ l, c, h: hue }));
     setState({ colorInput: hex, localL: l, localC: c, localH: hue });
   }
 
-  return h('div', { class: 'lch-sliders' },
-    // L
-    h('div', { class: 'lch-row' },
-      h('div', { class: 'lch-label-row' }, h('span', null, 'L'), h('span', null, (state.localL * 100).toFixed(1))),
-      h('input', { class: 'lch-slider', type: 'range', min: '0', max: '1', step: '0.001', value: String(state.localL),
-        onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(v, state.localC, state.localH); },
-      }),
+  return h('div', null,
+    h('button', {
+      class: 'collapsible-toggle',
+      onClick: () => setState({ lchOpen: !state.lchOpen }),
+    },
+      h('span', null, 'LCH Fine-tune'),
+      h('span', { class: 'collapsible-chevron' + (state.lchOpen ? ' open' : '') }, '\u25BC'),
     ),
-    // C
-    h('div', { class: 'lch-row' },
-      h('div', { class: 'lch-label-row' }, h('span', null, 'C'), h('span', null, (state.localC * 100).toFixed(1))),
-      h('input', { class: 'lch-slider', type: 'range', min: '0', max: '0.4', step: '0.001', value: String(state.localC),
-        onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, v, state.localH); },
-      }),
-    ),
-    // H
-    h('div', { class: 'lch-row' },
-      h('div', { class: 'lch-label-row' }, h('span', null, 'H'), h('span', null, state.localH.toFixed(1))),
-      h('input', { class: 'lch-slider', type: 'range', min: '0', max: '360', step: '0.1', value: String(state.localH),
-        onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, state.localC, v); },
-      }),
-    ),
+    state.lchOpen ? h('div', { class: 'collapsible-body' },
+      h('div', { class: 'lch-sliders' },
+        h('div', { class: 'lch-row' },
+          h('div', { class: 'lch-label-row' }, h('span', null, 'Lightness'), h('span', null, (state.localL * 100).toFixed(1))),
+          h('input', { class: 'lch-slider', type: 'range', min: '0', max: '1', step: '0.001', value: String(state.localL),
+            onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(v, state.localC, state.localH); },
+          }),
+        ),
+        h('div', { class: 'lch-row' },
+          h('div', { class: 'lch-label-row' }, h('span', null, 'Chroma'), h('span', null, (state.localC * 100).toFixed(1))),
+          h('input', { class: 'lch-slider', type: 'range', min: '0', max: '0.4', step: '0.001', value: String(state.localC),
+            onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, v, state.localH); },
+          }),
+        ),
+        h('div', { class: 'lch-row' },
+          h('div', { class: 'lch-label-row' }, h('span', null, 'Hue'), h('span', null, state.localH.toFixed(1) + '\u00B0')),
+          h('input', { class: 'lch-slider', type: 'range', min: '0', max: '360', step: '0.1', value: String(state.localH),
+            onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, state.localC, v); },
+          }),
+        ),
+      ),
+    ) : null,
   );
 }
 
-function OptionsSection() {
-  return h('div', { class: 'flex-col gap-md' },
-    // Shade Mode
-    h('div', { class: 'options-section' },
-      h('div', { class: 'section-label' }, 'Shade Mode'),
-      h('div', { class: 'options-row' },
+function RadioButton(props: { checked: boolean; label: string; onClick: () => void }) {
+  return h('label', { class: 'radio-label', onClick: props.onClick },
+    h('span', { class: 'radio-dot' + (props.checked ? ' checked' : '') },
+      h('span', { class: 'radio-dot-inner' }),
+    ),
+    props.label,
+  );
+}
+
+function OptionsSection(d: ReturnType<typeof computeDerived>) {
+  return h('div', { class: 'flex-col gap-sm' },
+    // Shade Mode — dropdown
+    h('div', { class: 'option-row' },
+      h('span', { class: 'option-label' }, 'Shade'),
+      h('select', {
+        class: 'dropdown',
+        onChange: (e: Event) => setState({ shadeMode: (e.target as HTMLSelectElement).value as ShadeMode }),
+      },
         ...SHADE_MODES.map((m) =>
-          h('button', {
-            class: 'chip-btn' + (state.shadeMode === m.id ? ' active' : ''),
-            onClick: () => setState({ shadeMode: m.id }),
-          }, m.label),
+          h('option', { value: m.id, selected: state.shadeMode === m.id ? true : undefined }, m.label),
         ),
       ),
     ),
-    // Harmony
-    h('div', { class: 'options-section' },
-      h('div', { class: 'section-label' }, 'Harmony'),
-      h('div', { class: 'options-row' },
-        ...HARMONY_TYPES.map((t) =>
-          h('button', {
-            class: 'chip-btn' + (state.harmonyType === t.id ? ' active' : ''),
-            onClick: () => setState({ harmonyType: t.id }),
-          }, t.label),
+    // Harmony — dropdown with color preview
+    h('div', { class: 'option-row' },
+      h('span', { class: 'option-label' }, 'Harmony'),
+      h('div', { class: 'option-control' },
+        d.harmony ? h('div', { style: { display: 'flex', gap: '3px', marginRight: '6px' } },
+          ...d.harmony.colors.slice(0, 4).map((c) =>
+            h('div', {
+              style: { width: '12px', height: '12px', borderRadius: '50%', background: c.hex, border: '1px solid rgba(0,0,0,0.1)' },
+            }),
+          ),
+        ) : null,
+        h('select', {
+          class: 'dropdown',
+          onChange: (e: Event) => setState({ harmonyType: (e.target as HTMLSelectElement).value as HarmonyType }),
+        },
+          ...HARMONY_TYPES.map((t) =>
+            h('option', { value: t.id, selected: state.harmonyType === t.id ? true : undefined }, t.label),
+          ),
         ),
       ),
     ),
-    // Anchor + Neutral
-    h('div', { style: { display: 'flex', gap: '16px' } },
-      h('div', { class: 'options-section', style: { flex: '1' } },
-        h('div', { class: 'section-label' }, 'Anchor'),
-        h('div', { class: 'radio-row' },
-          h('button', { class: 'radio-btn' + (state.anchorBehavior === 'preserve-input' ? ' active' : ''), onClick: () => setState({ anchorBehavior: 'preserve-input' }) },
-            h('span', { class: 'radio-mark' }, state.anchorBehavior === 'preserve-input' ? '[*]' : '[ ]'), 'Keep input'),
-          h('button', { class: 'radio-btn' + (state.anchorBehavior === 'auto-gamut' ? ' active' : ''), onClick: () => setState({ anchorBehavior: 'auto-gamut' }) },
-            h('span', { class: 'radio-mark' }, state.anchorBehavior === 'auto-gamut' ? '[*]' : '[ ]'), 'Auto gamut'),
-        ),
+    // Anchor — left label, right radio
+    h('div', { class: 'option-row' },
+      h('span', { class: 'option-label' }, 'Anchor'),
+      h('div', { class: 'radio-group' },
+        RadioButton({ checked: state.anchorBehavior === 'preserve-input', label: 'Keep input', onClick: () => setState({ anchorBehavior: 'preserve-input' }) }),
+        RadioButton({ checked: state.anchorBehavior === 'auto-gamut', label: 'Auto gamut', onClick: () => setState({ anchorBehavior: 'auto-gamut' }) }),
       ),
-      h('div', { class: 'options-section', style: { flex: '1' } },
-        h('div', { class: 'section-label' }, 'Neutral'),
-        h('div', { class: 'radio-row' },
-          h('button', { class: 'radio-btn' + (state.neutralMode === 'keep-hue' ? ' active' : ''), onClick: () => setState({ neutralMode: 'keep-hue' }) },
-            h('span', { class: 'radio-mark' }, state.neutralMode === 'keep-hue' ? '[*]' : '[ ]'), 'Tinted'),
-          h('button', { class: 'radio-btn' + (state.neutralMode === 'absolute-gray' ? ' active' : ''), onClick: () => setState({ neutralMode: 'absolute-gray' }) },
-            h('span', { class: 'radio-mark' }, state.neutralMode === 'absolute-gray' ? '[*]' : '[ ]'), 'Gray'),
-        ),
+    ),
+    // Neutral — left label, right radio
+    h('div', { class: 'option-row' },
+      h('span', { class: 'option-label' }, 'Neutral'),
+      h('div', { class: 'radio-group' },
+        RadioButton({ checked: state.neutralMode === 'keep-hue', label: 'Tinted', onClick: () => setState({ neutralMode: 'keep-hue' }) }),
+        RadioButton({ checked: state.neutralMode === 'absolute-gray', label: 'Gray', onClick: () => setState({ neutralMode: 'absolute-gray' }) }),
       ),
     ),
   );
@@ -306,16 +358,17 @@ function ScaleStrip(props: { label: string; baseHex: string; scale: ScaleColor[]
       h('span', { class: 'scale-base-hex text-mono' }, props.baseHex),
     ),
     h('div', { class: 'scale-strip' },
-      ...props.scale.map((s) =>
-        h('div', {
+      ...props.scale.map((s) => {
+        const txtColor = autoTextColor(s.hex);
+        return h('div', {
           class: 'scale-chip',
           style: { background: s.hex },
-          title: s.step + ': ' + s.hex,
-          onClick: () => copyToClipboard(s.hex),
+          title: s.step + ': ' + s.hex + ' (click to apply)',
+          onClick: () => onColorClick(s.hex),
         },
-          h('span', { class: 'scale-chip-label' }, String(s.step)),
-        ),
-      ),
+          h('span', { class: 'scale-chip-label', style: { color: txtColor } }, String(s.step)),
+        );
+      }),
     ),
   );
 }
@@ -332,30 +385,40 @@ function PaletteTab(d: ReturnType<typeof computeDerived>) {
       ScaleStrip({ label: 'Accent', baseHex: p.accent.baseHex, scale: p.accent.scale }),
       ScaleStrip({ label: 'Neutral', baseHex: p.neutral.baseHex, scale: p.neutral.scale }),
     ),
-    // Harmony
+    // Harmony — rich preview with label + hex + color dot
     d.harmony ? h('div', { class: 'harmony-section' },
-      h('div', { class: 'section-label' }, 'Harmony'),
-      h('div', { class: 'harmony-circles' },
+      h('div', { class: 'section-label' }, 'Harmony — ' + HARMONY_TYPES.find((t) => t.id === state.harmonyType)?.label),
+      h('div', { class: 'harmony-grid' },
         ...d.harmony.colors.map((c) =>
           h('div', {
-            class: 'harmony-circle',
-            style: { background: c.hex },
-            title: c.label + ': ' + c.hex,
-            onClick: () => copyToClipboard(c.hex),
-          }),
+            class: 'harmony-item',
+            title: 'Click to apply ' + c.hex,
+            onClick: () => onColorClick(c.hex),
+          },
+            h('div', { class: 'harmony-dot', style: { background: c.hex } }),
+            h('div', { class: 'harmony-info' },
+              h('span', { class: 'harmony-item-label' }, c.label),
+              h('span', { class: 'harmony-item-hex' }, c.hex),
+            ),
+          ),
         ),
       ),
     ) : null,
-    // Gradients
+    // Gradients — richer set with labels
     d.gradients.length > 0 ? h('div', { class: 'gradient-section' },
       h('div', { class: 'section-label' }, 'Gradients'),
-      ...d.gradients.map((g, i) =>
-        h('div', {
-          class: 'gradient-bar',
-          style: { background: g.css },
-          title: 'Click to copy CSS',
-          onClick: () => copyToClipboard(g.css),
-        }),
+      ...d.gradients.map((g) =>
+        h('div', { class: 'gradient-row' },
+          h('div', { class: 'gradient-meta' },
+            h('span', { class: 'gradient-name' }, g.name),
+          ),
+          h('div', {
+            class: 'gradient-bar',
+            style: { background: g.css },
+            title: 'Click to copy CSS gradient',
+            onClick: () => copyToClipboard(g.css),
+          }),
+        ),
       ),
     ) : null,
   );
@@ -370,7 +433,6 @@ function PreviewTab(d: ReturnType<typeof computeDerived>) {
     return item ? item.hex : fallback;
   }
 
-  // Light surface preview
   const lightBg = sc(p.neutral, 50, '#fafafa');
   const lightBorder = sc(p.neutral, 200, '#e0e0e0');
   const lightText = sc(p.neutral, 950, '#111');
@@ -385,7 +447,6 @@ function PreviewTab(d: ReturnType<typeof computeDerived>) {
   const btnSecBorder = sc(p.primary, 400, '#909090');
   const btnSecText = sc(p.primary, 700, '#303030');
 
-  // Dark surface preview
   const darkBg = sc(p.neutral, 950, '#111');
   const darkBorder = sc(p.neutral, 800, '#333');
   const darkText = sc(p.neutral, 50, '#fafafa');
@@ -395,11 +456,10 @@ function PreviewTab(d: ReturnType<typeof computeDerived>) {
   const darkBadgeText = sc(p.secondary, 200, '#e0e0e0');
 
   return h('div', { class: 'flex-col gap-md' },
-    // Light surface
     h('div', { class: 'preview-card', style: { background: lightBg, borderColor: lightBorder } },
       h('div', { class: 'preview-head' },
         h('span', { style: { fontWeight: '600', fontSize: '13px', color: lightText } }, 'Light Surface'),
-        h('span', { class: 'preview-badge', style: { background: badgeBg, border: '1px solid ' + badgeBorder, color: badgeText, fontSize: '10px' } }, 'Badge'),
+        h('span', { class: 'preview-badge', style: { background: badgeBg, border: '1px solid ' + badgeBorder, color: badgeText } }, 'Badge'),
       ),
       h('p', { style: { fontSize: '11px', color: lightMuted, lineHeight: '1.5' } },
         'Body text on a light neutral background with secondary badge.'),
@@ -408,16 +468,14 @@ function PreviewTab(d: ReturnType<typeof computeDerived>) {
         h('span', { class: 'preview-btn-secondary', style: { background: 'transparent', borderColor: btnSecBorder, color: btnSecText } }, 'Secondary'),
       ),
     ),
-    // Dark surface
     h('div', { class: 'preview-card', style: { background: darkBg, borderColor: darkBorder } },
       h('div', { class: 'preview-head' },
         h('span', { style: { fontWeight: '600', fontSize: '13px', color: darkText } }, 'Dark Surface'),
-        h('span', { class: 'preview-badge', style: { background: darkBadgeBg, border: '1px solid ' + darkBadgeBorder, color: darkBadgeText, fontSize: '10px' } }, 'Badge'),
+        h('span', { class: 'preview-badge', style: { background: darkBadgeBg, border: '1px solid ' + darkBadgeBorder, color: darkBadgeText } }, 'Badge'),
       ),
       h('p', { style: { fontSize: '11px', color: darkMuted, lineHeight: '1.5' } },
         'Body text on a dark neutral background with secondary badge.'),
     ),
-    // Brand surface
     h('div', { class: 'preview-card', style: { background: brandBg, borderColor: 'transparent' } },
       h('div', { class: 'preview-head' },
         h('span', { style: { fontWeight: '600', fontSize: '13px', color: brandFg } }, 'Brand Surface'),
@@ -432,7 +490,7 @@ function ContrastTab(d: ReturnType<typeof computeDerived>) {
   if (!d.palette) return h('div', { class: 'text-muted' }, 'Enter a valid color to see contrast data.');
 
   return h('div', { class: 'contrast-section' },
-    h('div', { class: 'section-label' }, 'WCAG 2.0 Contrast Recommendations'),
+    h('div', { class: 'section-label' }, 'WCAG 2.0 Contrast'),
     ...d.usageRows.map((row) =>
       h('div', { class: 'contrast-row' },
         h('span', { class: 'contrast-label' }, row.label),
@@ -440,23 +498,19 @@ function ContrastTab(d: ReturnType<typeof computeDerived>) {
         h('span', { class: 'contrast-badge ' + (row.pass ? 'pass' : 'fail') }, ratioGrade(row.ratio)),
       ),
     ),
-    // Full matrix
     d.palette ? FullContrastMatrix(d.palette.primary.scale) : null,
   );
 }
 
 function FullContrastMatrix(scale: ScaleColor[]) {
-  // Show a compact grid of step vs step contrast
   const lightSteps = scale.filter((s) => s.step <= 200);
   const darkSteps = scale.filter((s) => s.step >= 700);
 
   return h('div', { class: 'flex-col gap-sm', style: { marginTop: '8px' } },
     h('div', { class: 'section-label' }, 'Text on Background'),
-    h('div', { style: { display: 'grid', gridTemplateColumns: '50px ' + lightSteps.map(() => '1fr').join(' '), gap: '3px', fontSize: '9px', fontFamily: "'JetBrains Mono', monospace" } },
-      // Header row
+    h('div', { style: { display: 'grid', gridTemplateColumns: '40px ' + lightSteps.map(() => '1fr').join(' '), gap: '2px', fontSize: '9px', fontFamily: "'JetBrains Mono', monospace" } },
       h('div', null, ''),
       ...lightSteps.map((bg) => h('div', { style: { textAlign: 'center', color: 'var(--color-text-secondary)' } }, String(bg.step))),
-      // Data rows
       ...darkSteps.flatMap((text) => [
         h('div', { style: { color: 'var(--color-text-secondary)' } }, String(text.step)),
         ...lightSteps.map((bg) => {
@@ -473,7 +527,6 @@ function FullContrastMatrix(scale: ScaleColor[]) {
 
 function ExportTab(d: ReturnType<typeof computeDerived>) {
   return h('div', { class: 'export-section' },
-    // Format selection
     h('div', { class: 'section-label' }, 'Format'),
     h('div', { class: 'export-format-bar' },
       ...(EXPORT_FORMATS as readonly string[]).map((fmt) =>
@@ -483,9 +536,8 @@ function ExportTab(d: ReturnType<typeof computeDerived>) {
         }, fmtLabel(fmt)),
       ),
     ),
-    // Naming
     h('div', { class: 'section-label', style: { marginTop: '4px' } }, 'Naming'),
-    h('div', { class: 'options-row' },
+    h('div', { class: 'export-format-bar' },
       ...(NAMING_PRESETS as readonly string[]).map((preset) =>
         h('button', {
           class: 'chip-btn' + (state.namingPreset === preset ? ' active' : ''),
@@ -493,9 +545,7 @@ function ExportTab(d: ReturnType<typeof computeDerived>) {
         }, preset === 'semantic' ? 'Semantic' : 'Numeric'),
       ),
     ),
-    // Code preview
-    h('pre', { class: 'code-preview' }, d.exportCode.length > 1200 ? d.exportCode.slice(0, 1200) + '\n...' : d.exportCode),
-    // Actions
+    h('pre', { class: 'code-preview' }, d.exportCode.length > 1500 ? d.exportCode.slice(0, 1500) + '\n...' : d.exportCode),
     h('div', { class: 'action-bar' },
       h('button', { class: 'btn btn-primary btn-full', onClick: () => copyToClipboard(d.exportCode) }, 'Copy Code'),
     ),
@@ -511,25 +561,6 @@ function fmtLabel(fmt: string): string {
   return fmt;
 }
 
-function FigmaApplySection(d: ReturnType<typeof computeDerived>) {
-  if (!d.palette) return null;
-  const serialized = serializePalette(d.palette);
-  return h('div', { class: 'figma-apply-section' },
-    h('div', { class: 'figma-apply-title' }, 'Apply to Figma'),
-    h('div', { class: 'figma-apply-desc' }, 'Push the generated palette directly into your Figma file.'),
-    h('div', { class: 'action-bar', style: { marginTop: '4px' } },
-      h('button', {
-        class: 'btn btn-primary btn-full',
-        onClick: () => postToPlugin({ type: 'apply-styles', palette: serialized }),
-      }, 'Create Color Styles'),
-      h('button', {
-        class: 'btn btn-secondary btn-full',
-        onClick: () => postToPlugin({ type: 'apply-variables', palette: serialized }),
-      }, 'Create Variables'),
-    ),
-  );
-}
-
 /* ── Main App ── */
 
 function App() {
@@ -541,42 +572,25 @@ function App() {
     { id: 'export', label: 'Export' },
   ];
 
-  return h('div', { class: 'plugin-root' },
-    // Header
-    h('header', { class: 'plugin-header' },
-      h('span', { class: 'plugin-logo' }, 'OKScale'),
-      h('button', {
-        class: 'btn btn-secondary',
-        style: { padding: '4px 10px', fontSize: '10px' },
-        onClick: () => setState({
-          colorInput: '#d9ff00',
-          shadeMode: 'natural',
-          harmonyType: 'complementary',
-          anchorBehavior: 'preserve-input',
-          neutralMode: 'keep-hue',
-          localL: 0.94, localC: 0.23, localH: 110,
-        }),
-      }, 'Reset'),
-    ),
+  const hasPalette = !!d.palette;
+  const serialized = hasPalette ? serializePalette(d.palette!) : null;
 
-    // Body
+  return h('div', { class: 'plugin-root' },
+    // Body (scrollable area)
     h('div', { class: 'plugin-body' },
       // Color input
       ColorInputSection(d),
       d.colorError ? h('div', { class: 'color-error' }, d.colorError) : null,
 
-      // LCH sliders
-      LCHSliders(),
+      // LCH sliders — collapsible
+      LCHCollapsible(),
 
       h('div', { class: 'divider' }),
 
-      // Options
-      OptionsSection(),
+      // Options (dropdowns + radios)
+      OptionsSection(d),
 
       h('div', { class: 'divider' }),
-
-      // Figma apply
-      FigmaApplySection(d),
 
       // Tabs
       h('div', { class: 'tab-bar' },
@@ -593,6 +607,36 @@ function App() {
       state.activeTab === 'preview' ? PreviewTab(d) :
       state.activeTab === 'contrast' ? ContrastTab(d) :
       ExportTab(d),
+    ),
+
+    // Fixed bottom bar: Create Styles | Create Variables | Reset
+    h('div', { class: 'bottom-bar' },
+      h('button', {
+        class: 'btn btn-primary btn-full',
+        style: { opacity: hasPalette ? '1' : '0.4' },
+        onClick: () => { if (serialized) postToPlugin({ type: 'apply-styles', palette: serialized }); },
+      }, 'Styles'),
+      h('button', {
+        class: 'btn btn-primary btn-full',
+        style: { opacity: hasPalette ? '1' : '0.4' },
+        onClick: () => { if (serialized) postToPlugin({ type: 'apply-variables', palette: serialized }); },
+      }, 'Variables'),
+      h('button', {
+        class: 'btn btn-secondary',
+        onClick: () => {
+          const rgb = parseColorInput('#d9ff00');
+          const lch = rgb ? rgbToOklch(rgb) : { l: 0.94, c: 0.23, h: 110 };
+          setState({
+            colorInput: '#d9ff00',
+            shadeMode: 'natural',
+            harmonyType: 'complementary',
+            anchorBehavior: 'preserve-input',
+            neutralMode: 'keep-hue',
+            localL: lch.l, localC: lch.c, localH: lch.h,
+            lchOpen: false,
+          });
+        },
+      }, 'Reset'),
     ),
 
     // Toast
@@ -623,7 +667,6 @@ window.addEventListener('message', (event) => {
 });
 
 /* ── Initial render ── */
-// Sync LCH sliders from initial color
 const initialRgb = parseColorInput(state.colorInput);
 if (initialRgb) {
   const lch = rgbToOklch(initialRgb);
