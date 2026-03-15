@@ -1,56 +1,4 @@
-/* ── Minimal Preact-like h/render for Figma plugin (no dependencies) ── */
-
-type VNode = { tag: string | Function; props: any; children: any[] };
-type Child = VNode | string | number | null | undefined | boolean | Child[];
-
-function h(tag: string | Function, props: any, ...children: Child[]): VNode {
-  return { tag, props: props || {}, children: children.flat(Infinity).filter((c) => c != null && c !== false && c !== true) };
-}
-
-function Fragment(_props: any): any { return null; }
-
-function render(vnode: Child, container: HTMLElement) {
-  container.innerHTML = '';
-  const el = createElement(vnode);
-  if (el) container.appendChild(el);
-}
-
-function createElement(vnode: Child): Node | null {
-  if (vnode == null || typeof vnode === 'boolean') return null;
-  if (typeof vnode === 'string' || typeof vnode === 'number') return document.createTextNode(String(vnode));
-  if (Array.isArray(vnode)) {
-    const frag = document.createDocumentFragment();
-    vnode.forEach((v) => { const n = createElement(v); if (n) frag.appendChild(n); });
-    return frag;
-  }
-  const { tag, props, children } = vnode as VNode;
-  if (typeof tag === 'function') {
-    if (tag === Fragment) {
-      const frag = document.createDocumentFragment();
-      children.forEach((c: Child) => { const n = createElement(c); if (n) frag.appendChild(n); });
-      return frag;
-    }
-    return createElement(tag({ ...props, children }));
-  }
-  const el = document.createElement(tag);
-  for (const [key, val] of Object.entries(props)) {
-    if (key === 'children') continue;
-    if (key === 'class' || key === 'className') { el.className = val as string; continue; }
-    if (key === 'style' && typeof val === 'object') {
-      for (const [sk, sv] of Object.entries(val as Record<string, string>)) el.style.setProperty(sk.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase()), String(sv));
-      continue;
-    }
-    if (key.startsWith('on') && typeof val === 'function') {
-      el.addEventListener(key.slice(2).toLowerCase(), val as EventListener);
-      continue;
-    }
-    if (key === 'dangerouslySetInnerHTML') { el.innerHTML = (val as any).__html; continue; }
-    if (typeof val === 'boolean') { if (val) el.setAttribute(key, ''); }
-    else el.setAttribute(key, String(val));
-  }
-  children.forEach((c: Child) => { const n = createElement(c); if (n) el.appendChild(n); });
-  return el;
-}
+import { h, Fragment, render } from 'preact';
 
 /* ── Import color generation libs from parent src/lib ── */
 
@@ -190,7 +138,6 @@ function applyColor(hex: string) {
 function contrastTextColor(hex: string): string {
   const rgb = parseColorInput(hex);
   if (!rgb) return '#000000';
-  // Relative luminance calculation
   const lum = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
   return lum > 0.45 ? '#000000' : '#ffffff';
 }
@@ -216,22 +163,24 @@ function ColorInputSection(d: ReturnType<typeof computeDerived>) {
         },
       }),
     ),
-    h('input', {
-      class: 'hex-input',
-      value: state.colorInput,
-      placeholder: '#d9ff00',
-      spellcheck: 'false',
-      onInput: (e: Event) => {
-        const val = (e.target as HTMLInputElement).value;
-        const rgb = parseColorInput(val);
-        if (rgb) {
-          const lch = rgbToOklch(rgb);
-          setState({ colorInput: val, localL: lch.l, localC: lch.c, localH: lch.h });
-        } else {
-          setState({ colorInput: val });
-        }
-      },
-    }),
+    h('div', { class: 'input color-hex-input' },
+      h('input', {
+        class: 'input__field',
+        value: state.colorInput,
+        placeholder: '#d9ff00',
+        spellcheck: 'false',
+        onInput: (e: Event) => {
+          const val = (e.target as HTMLInputElement).value;
+          const rgb = parseColorInput(val);
+          if (rgb) {
+            const lch = rgbToOklch(rgb);
+            setState({ colorInput: val, localL: lch.l, localC: lch.c, localH: lch.h });
+          } else {
+            setState({ colorInput: val });
+          }
+        },
+      }),
+    ),
   );
 }
 
@@ -241,37 +190,36 @@ function LCHSliders() {
     setState({ colorInput: hex, localL: l, localC: c, localH: hue });
   }
 
-  return h('div', { class: 'lch-collapse-section' },
-    h('button', {
-      class: 'lch-toggle-btn',
-      onClick: () => setState({ lchExpanded: !state.lchExpanded }),
-    },
-      h('span', null, 'LCH Fine-tune'),
-      h('span', { class: 'lch-toggle-arrow' }, state.lchExpanded ? '\u25B2' : '\u25BC'),
+  return h('ul', { class: 'disclosure' },
+    h('li', { class: 'disclosure__item' + (state.lchExpanded ? ' disclosure--expanded' : '') },
+      h('div', {
+        class: 'disclosure__label',
+        onClick: () => setState({ lchExpanded: !state.lchExpanded }),
+      }, 'LCH Fine-tune'),
+      h('div', { class: 'disclosure__content lch-sliders' },
+        // L
+        h('div', { class: 'lch-row' },
+          h('div', { class: 'lch-label-row' }, h('span', null, 'L'), h('span', null, (state.localL * 100).toFixed(1))),
+          h('input', { class: 'lch-slider', type: 'range', min: '0', max: '1', step: '0.001', value: String(state.localL),
+            onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(v, state.localC, state.localH); },
+          }),
+        ),
+        // C
+        h('div', { class: 'lch-row' },
+          h('div', { class: 'lch-label-row' }, h('span', null, 'C'), h('span', null, (state.localC * 100).toFixed(1))),
+          h('input', { class: 'lch-slider', type: 'range', min: '0', max: '0.4', step: '0.001', value: String(state.localC),
+            onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, v, state.localH); },
+          }),
+        ),
+        // H
+        h('div', { class: 'lch-row' },
+          h('div', { class: 'lch-label-row' }, h('span', null, 'H'), h('span', null, state.localH.toFixed(1))),
+          h('input', { class: 'lch-slider', type: 'range', min: '0', max: '360', step: '0.1', value: String(state.localH),
+            onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, state.localC, v); },
+          }),
+        ),
+      ),
     ),
-    state.lchExpanded ? h('div', { class: 'lch-sliders' },
-      // L
-      h('div', { class: 'lch-row' },
-        h('div', { class: 'lch-label-row' }, h('span', null, 'L'), h('span', null, (state.localL * 100).toFixed(1))),
-        h('input', { class: 'lch-slider', type: 'range', min: '0', max: '1', step: '0.001', value: String(state.localL),
-          onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(v, state.localC, state.localH); },
-        }),
-      ),
-      // C
-      h('div', { class: 'lch-row' },
-        h('div', { class: 'lch-label-row' }, h('span', null, 'C'), h('span', null, (state.localC * 100).toFixed(1))),
-        h('input', { class: 'lch-slider', type: 'range', min: '0', max: '0.4', step: '0.001', value: String(state.localC),
-          onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, v, state.localH); },
-        }),
-      ),
-      // H
-      h('div', { class: 'lch-row' },
-        h('div', { class: 'lch-label-row' }, h('span', null, 'H'), h('span', null, state.localH.toFixed(1))),
-        h('input', { class: 'lch-slider', type: 'range', min: '0', max: '360', step: '0.1', value: String(state.localH),
-          onInput: (e: Event) => { const v = parseFloat((e.target as HTMLInputElement).value); applyLCH(state.localL, state.localC, v); },
-        }),
-      ),
-    ) : null,
   );
 }
 
@@ -280,15 +228,14 @@ function DropdownSelect(props: {
   options: Array<{ id: string; label: string }>;
   value: string;
   onChange: (id: string) => void;
-  prefix?: VNode | null;
+  prefix?: ReturnType<typeof h> | null;
 }) {
   return h('div', { class: 'option-row' },
     h('span', { class: 'option-row-label' }, props.label),
     h('div', { class: 'option-row-control' },
       props.prefix || null,
       h('select', {
-        class: 'dropdown-select',
-        value: props.value,
+        class: 'native-select',
         onChange: (e: Event) => props.onChange((e.target as HTMLSelectElement).value),
       },
         ...props.options.map((o) =>
@@ -325,31 +272,55 @@ function OptionsSection(d: ReturnType<typeof computeDerived>) {
       onChange: (id) => setState({ harmonyType: id as HarmonyType }),
       prefix: HarmonyPreviewCircles(d),
     }),
-    // Anchor - left/right layout with radio
+    // Anchor
     h('div', { class: 'option-row' },
       h('span', { class: 'option-row-label' }, 'Anchor'),
-      h('div', { class: 'option-row-control radio-group' },
-        h('label', { class: 'radio-label', onClick: () => setState({ anchorBehavior: 'preserve-input' }) },
-          h('input', { type: 'radio', name: 'anchor', checked: state.anchorBehavior === 'preserve-input' }),
-          h('span', null, 'Keep input'),
+      h('div', { class: 'option-row-control' },
+        h('label', { class: 'radio' },
+          h('input', {
+            class: 'radio__button',
+            type: 'radio',
+            name: 'anchor',
+            checked: state.anchorBehavior === 'preserve-input',
+            onChange: () => setState({ anchorBehavior: 'preserve-input' }),
+          }),
+          h('span', { class: 'radio__label' }, 'Keep input'),
         ),
-        h('label', { class: 'radio-label', onClick: () => setState({ anchorBehavior: 'auto-gamut' }) },
-          h('input', { type: 'radio', name: 'anchor', checked: state.anchorBehavior === 'auto-gamut' }),
-          h('span', null, 'Auto gamut'),
+        h('label', { class: 'radio' },
+          h('input', {
+            class: 'radio__button',
+            type: 'radio',
+            name: 'anchor',
+            checked: state.anchorBehavior === 'auto-gamut',
+            onChange: () => setState({ anchorBehavior: 'auto-gamut' }),
+          }),
+          h('span', { class: 'radio__label' }, 'Auto gamut'),
         ),
       ),
     ),
-    // Neutral - left/right layout with radio
+    // Neutral
     h('div', { class: 'option-row' },
       h('span', { class: 'option-row-label' }, 'Neutral'),
-      h('div', { class: 'option-row-control radio-group' },
-        h('label', { class: 'radio-label', onClick: () => setState({ neutralMode: 'keep-hue' }) },
-          h('input', { type: 'radio', name: 'neutral', checked: state.neutralMode === 'keep-hue' }),
-          h('span', null, 'Tinted'),
+      h('div', { class: 'option-row-control' },
+        h('label', { class: 'radio' },
+          h('input', {
+            class: 'radio__button',
+            type: 'radio',
+            name: 'neutral',
+            checked: state.neutralMode === 'keep-hue',
+            onChange: () => setState({ neutralMode: 'keep-hue' }),
+          }),
+          h('span', { class: 'radio__label' }, 'Tinted'),
         ),
-        h('label', { class: 'radio-label', onClick: () => setState({ neutralMode: 'absolute-gray' }) },
-          h('input', { type: 'radio', name: 'neutral', checked: state.neutralMode === 'absolute-gray' }),
-          h('span', null, 'Gray'),
+        h('label', { class: 'radio' },
+          h('input', {
+            class: 'radio__button',
+            type: 'radio',
+            name: 'neutral',
+            checked: state.neutralMode === 'absolute-gray',
+            onChange: () => setState({ neutralMode: 'absolute-gray' }),
+          }),
+          h('span', { class: 'radio__label' }, 'Gray'),
         ),
       ),
     ),
@@ -379,7 +350,7 @@ function ScaleStrip(props: { label: string; baseHex: string; scale: ScaleColor[]
 }
 
 function PaletteTab(d: ReturnType<typeof computeDerived>) {
-  if (!d.palette) return h('div', { class: 'text-muted' }, 'Enter a valid color to generate a palette.');
+  if (!d.palette) return h('div', { class: 'type type--small' }, 'Enter a valid color to generate a palette.');
 
   const p = d.palette;
   return h('div', { class: 'flex-col gap-md' },
@@ -404,9 +375,8 @@ function PaletteTab(d: ReturnType<typeof computeDerived>) {
         ),
       ),
     ) : null,
-    // Gradients (synced with website: 5 gradients)
+    // Gradients
     d.gradients.length > 0 ? h('div', { class: 'gradient-section' },
-      // Harmony gradient
       h('div', { class: 'section-label' }, 'Gradient'),
       h('div', {
         class: 'gradient-bar',
@@ -414,7 +384,6 @@ function PaletteTab(d: ReturnType<typeof computeDerived>) {
         title: 'Click to copy CSS',
         onClick: () => copyToClipboard(d.gradients[0].css),
       }),
-      // Vivid gradient
       d.gradients[1] ? [
         h('div', { class: 'section-label', style: { marginTop: '6px' } }, 'Vivid'),
         h('div', {
@@ -424,7 +393,6 @@ function PaletteTab(d: ReturnType<typeof computeDerived>) {
           onClick: () => copyToClipboard(d.gradients[1].css),
         }),
       ] : null,
-      // Role x Neutral 50 trio
       d.gradients[2] && d.gradients[3] && d.gradients[4] ? [
         h('div', { class: 'section-label', style: { marginTop: '6px' } }, '\u00D7 Neutral 50'),
         h('div', { class: 'gradient-trio' },
@@ -450,7 +418,7 @@ function PaletteTab(d: ReturnType<typeof computeDerived>) {
 }
 
 function PreviewTab(d: ReturnType<typeof computeDerived>) {
-  if (!d.palette) return h('div', { class: 'text-muted' }, 'Enter a valid color to see previews.');
+  if (!d.palette) return h('div', { class: 'type type--small' }, 'Enter a valid color to see previews.');
 
   const p = d.palette;
   function sc(entry: FullPalette[keyof FullPalette], step: number, fallback: string): string {
@@ -512,10 +480,10 @@ function PreviewTab(d: ReturnType<typeof computeDerived>) {
 }
 
 function ContrastTab(d: ReturnType<typeof computeDerived>) {
-  if (!d.palette) return h('div', { class: 'text-muted' }, 'Enter a valid color to see contrast data.');
+  if (!d.palette) return h('div', { class: 'type type--small' }, 'Enter a valid color to see contrast data.');
 
   return h('div', { class: 'contrast-section' },
-    h('div', { class: 'section-label' }, 'WCAG 2.0 Contrast Recommendations'),
+    h('div', { class: 'section-title' }, 'WCAG 2.0 Contrast'),
     ...d.usageRows.map((row) =>
       h('div', { class: 'contrast-row' },
         h('span', { class: 'contrast-label' }, row.label),
@@ -535,9 +503,9 @@ function FullContrastMatrix(scale: ScaleColor[]) {
     h('div', { class: 'section-label' }, 'Text on Background'),
     h('div', { style: { display: 'grid', gridTemplateColumns: '50px ' + lightSteps.map(() => '1fr').join(' '), gap: '3px', fontSize: '9px', fontFamily: "'JetBrains Mono', monospace" } },
       h('div', null, ''),
-      ...lightSteps.map((bg) => h('div', { style: { textAlign: 'center', color: 'var(--color-text-secondary)' } }, String(bg.step))),
+      ...lightSteps.map((bg) => h('div', { style: { textAlign: 'center', color: 'var(--black3-opaque)' } }, String(bg.step))),
       ...darkSteps.flatMap((text) => [
-        h('div', { style: { color: 'var(--color-text-secondary)' } }, String(text.step)),
+        h('div', { style: { color: 'var(--black3-opaque)' } }, String(text.step)),
         ...lightSteps.map((bg) => {
           const ratio = contrastRatio(text.hex, bg.hex);
           const grade = ratioGrade(ratio);
@@ -552,7 +520,7 @@ function FullContrastMatrix(scale: ScaleColor[]) {
 
 function ExportTab(d: ReturnType<typeof computeDerived>) {
   return h('div', { class: 'export-section' },
-    h('div', { class: 'section-label' }, 'Format'),
+    h('div', { class: 'section-title' }, 'Format'),
     h('div', { class: 'export-format-bar' },
       ...(EXPORT_FORMATS as readonly string[]).map((fmt) =>
         h('button', {
@@ -561,7 +529,7 @@ function ExportTab(d: ReturnType<typeof computeDerived>) {
         }, fmtLabel(fmt)),
       ),
     ),
-    h('div', { class: 'section-label', style: { marginTop: '4px' } }, 'Naming'),
+    h('div', { class: 'section-title' }, 'Naming'),
     h('div', { class: 'options-row' },
       ...(NAMING_PRESETS as readonly string[]).map((preset) =>
         h('button', {
@@ -572,7 +540,7 @@ function ExportTab(d: ReturnType<typeof computeDerived>) {
     ),
     h('pre', { class: 'code-preview' }, d.exportCode.length > 1200 ? d.exportCode.slice(0, 1200) + '\n...' : d.exportCode),
     h('div', { class: 'action-bar' },
-      h('button', { class: 'btn btn-primary btn-full', onClick: () => copyToClipboard(d.exportCode) }, 'Copy Code'),
+      h('button', { class: 'button button--primary w-full', onClick: () => copyToClipboard(d.exportCode) }, 'Copy Code'),
     ),
   );
 }
@@ -606,7 +574,7 @@ function App() {
       ColorInputSection(d),
       d.colorError ? h('div', { class: 'color-error' }, d.colorError) : null,
 
-      // LCH sliders (collapsible)
+      // LCH sliders (collapsible disclosure)
       LCHSliders(),
 
       h('div', { class: 'divider' }),
@@ -636,17 +604,17 @@ function App() {
     // Fixed bottom bar
     h('div', { class: 'plugin-footer' },
       h('button', {
-        class: 'btn btn-primary btn-full',
+        class: 'button button--primary btn-expand',
         disabled: !serialized,
         onClick: () => serialized && postToPlugin({ type: 'apply-styles', palette: serialized }),
       }, 'Color Styles'),
       h('button', {
-        class: 'btn btn-primary btn-full',
+        class: 'button button--primary btn-expand',
         disabled: !serialized,
         onClick: () => serialized && postToPlugin({ type: 'apply-variables', palette: serialized }),
       }, 'Variables'),
       h('button', {
-        class: 'btn btn-secondary btn-full',
+        class: 'button button--secondary btn-expand',
         onClick: () => setState({
           colorInput: '#d9ff00',
           shadeMode: 'natural',
@@ -672,7 +640,7 @@ function rerender() {
   requestAnimationFrame(() => {
     renderPending = false;
     const app = document.getElementById('app');
-    if (app) render(App(), app);
+    if (app) render(h(App, null), app);
   });
 }
 
