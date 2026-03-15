@@ -1,56 +1,4 @@
-/* ── Minimal Preact-like h/render for Figma plugin (no dependencies) ── */
-
-type VNode = { tag: string | Function; props: any; children: any[] };
-type Child = VNode | string | number | null | undefined | boolean | Child[];
-
-function h(tag: string | Function, props: any, ...children: Child[]): VNode {
-  return { tag, props: props || {}, children: children.flat(Infinity).filter((c) => c != null && c !== false && c !== true) };
-}
-
-function Fragment(_props: any): any { return null; }
-
-function render(vnode: Child, container: HTMLElement) {
-  container.innerHTML = '';
-  const el = createElement(vnode);
-  if (el) container.appendChild(el);
-}
-
-function createElement(vnode: Child): Node | null {
-  if (vnode == null || typeof vnode === 'boolean') return null;
-  if (typeof vnode === 'string' || typeof vnode === 'number') return document.createTextNode(String(vnode));
-  if (Array.isArray(vnode)) {
-    const frag = document.createDocumentFragment();
-    vnode.forEach((v) => { const n = createElement(v); if (n) frag.appendChild(n); });
-    return frag;
-  }
-  const { tag, props, children } = vnode as VNode;
-  if (typeof tag === 'function') {
-    if (tag === Fragment) {
-      const frag = document.createDocumentFragment();
-      children.forEach((c: Child) => { const n = createElement(c); if (n) frag.appendChild(n); });
-      return frag;
-    }
-    return createElement(tag({ ...props, children }));
-  }
-  const el = document.createElement(tag);
-  for (const [key, val] of Object.entries(props)) {
-    if (key === 'children') continue;
-    if (key === 'class' || key === 'className') { el.className = val as string; continue; }
-    if (key === 'style' && typeof val === 'object') {
-      for (const [sk, sv] of Object.entries(val as Record<string, string>)) el.style.setProperty(sk.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase()), String(sv));
-      continue;
-    }
-    if (key.startsWith('on') && typeof val === 'function') {
-      el.addEventListener(key.slice(2).toLowerCase(), val as EventListener);
-      continue;
-    }
-    if (key === 'dangerouslySetInnerHTML') { el.innerHTML = (val as any).__html; continue; }
-    if (typeof val === 'boolean') { if (val) el.setAttribute(key, ''); }
-    else el.setAttribute(key, String(val));
-  }
-  children.forEach((c: Child) => { const n = createElement(c); if (n) el.appendChild(n); });
-  return el;
-}
+import { h, Fragment, render } from 'preact';
 
 /* ── Import color generation libs from parent src/lib ── */
 
@@ -280,7 +228,7 @@ function DropdownSelect(props: {
   options: Array<{ id: string; label: string }>;
   value: string;
   onChange: (id: string) => void;
-  prefix?: VNode | null;
+  prefix?: ReturnType<typeof h> | null;
 }) {
   return h('div', { class: 'option-row' },
     h('span', { class: 'option-row-label' }, props.label),
@@ -692,7 +640,7 @@ function rerender() {
   requestAnimationFrame(() => {
     renderPending = false;
     const app = document.getElementById('app');
-    if (app) render(App(), app);
+    if (app) render(h(App, null), app);
   });
 }
 
