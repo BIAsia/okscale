@@ -1,6 +1,6 @@
 import type { PluginMessage, SerializedPalette, SerializedRole, SerializedScaleColor } from './messages';
 
-figma.showUI(__html__, { width: 420, height: 680, themeColors: true });
+figma.showUI(__html__, { width: 772, height: 624, themeColors: true });
 
 function hexToFigmaRgb(hex: string): RGB {
   const clean = hex.replace(/^#/, '');
