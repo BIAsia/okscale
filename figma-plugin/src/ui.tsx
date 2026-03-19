@@ -7,8 +7,8 @@ import { type ShadeMode, SHADE_MODES } from '../../src/lib/shades';
 import { type HarmonyType, HARMONY_TYPES, generateHarmony } from '../../src/lib/harmony';
 import { gradientFromHarmony, gradientFromHarmonyVivid, gradientFromPair, type GradientResult } from '../../src/lib/gradient';
 import { contrastRatio } from '../../src/lib/contrast';
-import { formatFullExport, EXPORT_FORMATS, NAMING_PRESETS, type ExportFormat, type NamingPreset } from '../../src/lib/export';
-import type { SerializedPalette, SerializedRole, NotifyMsg } from './messages';
+import { formatFullExport, type NamingPreset } from '../../src/lib/export';
+import type { SerializedPalette, SerializedRole } from './messages';
 
 /* ── App State ── */
 
@@ -18,9 +18,7 @@ type AppState = {
   harmonyType: HarmonyType;
   anchorBehavior: AnchorBehavior;
   neutralMode: NeutralMode;
-  exportFormat: ExportFormat;
   namingPreset: NamingPreset;
-  toast: { message: string; error: boolean } | null;
   localL: number;
   localC: number;
   localH: number;
@@ -35,9 +33,7 @@ let state: AppState = {
   harmonyType: 'tetradic',
   anchorBehavior: 'preserve-input',
   neutralMode: 'keep-hue',
-  exportFormat: 'css',
   namingPreset: 'numeric',
-  toast: null,
   localL: 0.94,
   localC: 0.23,
   localH: 110,
@@ -46,20 +42,9 @@ let state: AppState = {
   lchExpanded: false,
 };
 
-let toastTimer: ReturnType<typeof setTimeout> | null = null;
-
 function setState(patch: Partial<AppState>) {
   Object.assign(state, patch);
   rerender();
-}
-
-function showToast(message: string, error = false) {
-  if (toastTimer) clearTimeout(toastTimer);
-  setState({ toast: { message, error } });
-  toastTimer = setTimeout(() => {
-    setState({ toast: null });
-    toastTimer = null;
-  }, 2500);
 }
 
 function pushHistory(hex: string) {
@@ -141,11 +126,7 @@ function computeDerived() {
     ];
   }
 
-  const exportCode = palette
-    ? formatFullExport(state.exportFormat, palette, state.namingPreset)
-    : '/* Enter a color to generate a palette */';
-
-  return { parsedRgb, primaryOklch, palette, harmony, gradients, exportCode };
+  return { parsedRgb, primaryOklch, palette, harmony, gradients };
 }
 
 function serializePalette(palette: FullPalette): SerializedPalette {
@@ -163,9 +144,25 @@ function serializePalette(palette: FullPalette): SerializedPalette {
 /* ── Color helpers ── */
 
 function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text).then(
-    () => showToast('Copied!'),
-    () => showToast('Copy failed', true),
+  // execCommand is synchronous and reliable in Figma's plugin iframe
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+  document.body.removeChild(el);
+
+  if (ok) {
+    postToPlugin({ type: 'notify-user', message: 'Copied!' });
+    return;
+  }
+  // Fallback: async clipboard API
+  navigator.clipboard?.writeText(text).then(
+    () => postToPlugin({ type: 'notify-user', message: 'Copied!' }),
+    () => postToPlugin({ type: 'notify-user', message: 'Copy failed', error: true }),
   );
 }
 
@@ -253,17 +250,19 @@ function onUploadImage(e: Event) {
   (e.target as HTMLInputElement).value = '';
 }
 
-function buildAgentCommand(): string {
-  return `mcpclient call okscale.generate_palette colorInput='${state.colorInput}' shadeMode=${state.shadeMode} harmonyType=${state.harmonyType} anchorBehavior=${state.anchorBehavior} --output json`;
-}
-
-function fmtLabel(fmt: string): string {
-  if (fmt === 'css') return 'CSS';
-  if (fmt === 'tailwind') return 'Tailwind';
-  if (fmt === 'tokens') return 'Tokens';
-  if (fmt === 'figma') return 'Figma JSON';
-  if (fmt === 'scss') return 'SCSS';
-  return fmt;
+function buildAgentPrompt(): string {
+  const payload = JSON.stringify({
+    colorInput: state.colorInput,
+    shadeMode: state.shadeMode,
+    harmonyType: state.harmonyType,
+    anchorBehavior: state.anchorBehavior,
+  }, null, 2);
+  return [
+    'Use OKScale to generate a color system.',
+    'Run generate_palette with this payload:',
+    payload,
+    'Then summarize primary/secondary/accent/neutral in plain language.',
+  ].join('\n');
 }
 
 /* ── Chevron SVG ── */
@@ -489,32 +488,52 @@ function CircleScaleRow(props: { label: string; baseHex: string; scale: ScaleCol
 /* ── Export dropdown ── */
 
 function ExportDropdown(d: ReturnType<typeof computeDerived>, serialized: SerializedPalette | null) {
+  const cssCode = d.palette
+    ? formatFullExport('css', d.palette, state.namingPreset)
+    : '/* Enter a color to generate a palette */';
+
   return h('div', { class: 'export-dropdown' },
-    h('div', { class: 'export-format-row' },
-      ...(EXPORT_FORMATS as readonly string[]).map((fmt) =>
-        h('button', {
-          class: 'chip' + (state.exportFormat === fmt ? ' active' : ''),
-          onClick: (e: Event) => { e.stopPropagation(); setState({ exportFormat: fmt as ExportFormat }); },
-        }, fmtLabel(fmt)),
-      ),
+    h('button', {
+      class: 'exp-menu-item',
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        copyToClipboard(cssCode);
+        setState({ exportOpen: false });
+      },
+    },
+      h('span', null, 'Export CSS'),
     ),
-    h('pre', { class: 'export-code' },
-      d.exportCode.length > 800 ? d.exportCode.slice(0, 800) + '\n...' : d.exportCode,
-    ),
-    h('div', { class: 'export-action-row' },
-      h('button', {
-        class: 'exp-btn exp-btn--primary',
-        onClick: (e: Event) => { e.stopPropagation(); copyToClipboard(d.exportCode); setState({ exportOpen: false }); },
-      }, 'Copy Code'),
-      serialized ? h('button', {
-        class: 'exp-btn exp-btn--outline',
-        onClick: (e: Event) => { e.stopPropagation(); postToPlugin({ type: 'apply-styles', palette: serialized }); setState({ exportOpen: false }); },
-      }, 'Color Styles') : null,
-      serialized ? h('button', {
-        class: 'exp-btn exp-btn--outline',
-        onClick: (e: Event) => { e.stopPropagation(); postToPlugin({ type: 'apply-variables', palette: serialized }); setState({ exportOpen: false }); },
-      }, 'Variables') : null,
-    ),
+    serialized ? h('button', {
+      class: 'exp-menu-item',
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        postToPlugin({ type: 'apply-variables', palette: serialized });
+        setState({ exportOpen: false });
+      },
+    },
+      h('span', null, 'Export Figma Variables'),
+    ) : null,
+    serialized ? h('button', {
+      class: 'exp-menu-item',
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        postToPlugin({ type: 'apply-styles', palette: serialized });
+        setState({ exportOpen: false });
+      },
+    },
+      h('span', null, 'Export Figma Color Styles'),
+    ) : null,
+    h('div', { class: 'exp-menu-divider' }),
+    serialized ? h('button', {
+      class: 'exp-menu-item',
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        postToPlugin({ type: 'export-to-canvas', palette: serialized });
+        setState({ exportOpen: false });
+      },
+    },
+      h('span', null, 'Export to Figma Canvas'),
+    ) : null,
   );
 }
 
@@ -551,13 +570,19 @@ function MainPanel(d: ReturnType<typeof computeDerived>) {
 
     /* ── Main footer ── */
     h('div', { class: 'main-footer' },
-      h('a', { class: 'why-link', href: 'https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl', target: '_blank' },
-        'Why OKLCH ↗',
+      h('div', { class: 'footer-links' },
+        h('a', { class: 'why-link', href: 'https://jakub.kr/components/oklch-colors', target: '_blank' },
+          'Why OKLCH ↗',
+        ),
+        h('span', { class: 'why-link why-link--disabled' }, 'App ↗'),
       ),
       h('div', { class: 'footer-actions' },
+        h('a', { class: 'why-link', href: 'https://x.com/lzybiasia', target: '_blank' },
+          'Twitter ↗',
+        ),
         h('button', {
-          class: 'footer-btn footer-btn--outline',
-          onClick: () => { copyToClipboard(buildAgentCommand()); },
+          class: 'footer-btn footer-btn--outline footer-btn--disabled',
+          disabled: true,
         }, 'Connect Agent'),
         h('div', { class: 'export-wrap' },
           h('button', {
@@ -585,7 +610,6 @@ function App() {
   },
     Sidebar(d),
     MainPanel(d),
-    state.toast ? h('div', { class: 'toast ' + (state.toast.error ? 'error' : 'success') }, state.toast.message) : null,
   );
 }
 
@@ -602,12 +626,6 @@ function rerender() {
   });
 }
 
-/* ── Listen for messages from plugin code ── */
-window.addEventListener('message', (event) => {
-  const msg = event.data?.pluginMessage as NotifyMsg | undefined;
-  if (!msg) return;
-  if (msg.type === 'notify') showToast(msg.message, msg.error);
-});
 
 /* ── Initial render ── */
 const initialRgb = parseColorInput(state.colorInput);

@@ -27,6 +27,19 @@ export type ApplyFillMsg = {
   hex: string;
 };
 
+/** UI → Plugin: show a native Figma notification */
+export type NotifyUserMsg = {
+  type: 'notify-user';
+  message: string;
+  error?: boolean;
+};
+
+/** UI → Plugin: create a structured color palette frame on the canvas */
+export type ExportToCanvasMsg = {
+  type: 'export-to-canvas';
+  palette: SerializedPalette;
+};
+
 /** Plugin → UI: notify success/failure */
 export type NotifyMsg = {
   type: 'notify';
@@ -34,7 +47,7 @@ export type NotifyMsg = {
   error?: boolean;
 };
 
-export type PluginMessage = ApplyStylesMsg | ApplyVariablesMsg | ResizeMsg | ApplyFillMsg;
+export type PluginMessage = ApplyStylesMsg | ApplyVariablesMsg | ResizeMsg | ApplyFillMsg | NotifyUserMsg | ExportToCanvasMsg;
 export type UIMessage = NotifyMsg;
 
 /** Serialized palette to transfer over postMessage */
