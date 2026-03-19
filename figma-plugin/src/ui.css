@@ -476,7 +476,7 @@ body, html {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--ok-neutral-100);
+  background: var(--ok-neutral-50);
   height: 100%;
   overflow: hidden;
   min-width: 0;
@@ -506,12 +506,12 @@ body, html {
   gap: 12px;
 }
 
-/* Scale header: label (left) + [dot + hex] (right) ── height ~22px */
+/* Scale header: label + [dot + hex] left-aligned ── height ~22px */
 .scale-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   height: 22px;
+  gap: 12px;
 }
 
 .scale-label {
@@ -617,6 +617,8 @@ body, html {
   border: 1px solid rgba(0,0,0,0.05);
   cursor: pointer;
   transition: transform 0.12s ease;
+  background-origin: border-box;
+  overflow: hidden;
 }
 
 .gradient-bar:hover { transform: scaleY(1.06); }
@@ -637,7 +639,7 @@ body, html {
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  background: var(--ok-neutral-100);
+  background: var(--ok-neutral-50);
   flex-shrink: 0;
   position: relative;
   z-index: 20;
@@ -695,9 +697,9 @@ body, html {
 /* 1FB-1: height 32, borderRadius 8, paddingLeft 16, paddingRight 12, bg #0A0A0A, gap 8px */
 .footer-btn--primary {
   padding: 0 12px 0 16px;
-  background: var(--ok-highlight);
-  border: 1px solid var(--ok-highlight);
-  color: var(--ok-highlight-fg);
+  background: var(--ok-neutral-950);
+  border: 1px solid var(--ok-neutral-950);
+  color: var(--ok-neutral-50);
   font-weight: 500;
 }
 

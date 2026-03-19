@@ -451,6 +451,16 @@ function Sidebar(d: ReturnType<typeof computeDerived>) {
 
 /* ── Circle scale row ── */
 
+function bestTextColorFromScale(bgHex: string, scale: ScaleColor[]): string {
+  let best = scale[0]?.hex ?? '#000000';
+  let bestRatio = 0;
+  for (const s of scale) {
+    const r = contrastRatio(s.hex, bgHex);
+    if (r > bestRatio) { bestRatio = r; best = s.hex; }
+  }
+  return best;
+}
+
 function CircleScaleRow(props: { label: string; baseHex: string; scale: ScaleColor[] }) {
   return h('div', { class: 'scale-row' },
     h('div', { class: 'scale-header' },
@@ -462,7 +472,7 @@ function CircleScaleRow(props: { label: string; baseHex: string; scale: ScaleCol
     ),
     h('div', { class: 'scale-circles' },
       ...props.scale.map((s) => {
-        const textColor = contrastTextColor(s.hex);
+        const textColor = bestTextColorFromScale(s.hex, props.scale);
         return h('div', {
           class: 'circle-chip',
           style: { background: s.hex },
@@ -530,7 +540,7 @@ function MainPanel(d: ReturnType<typeof computeDerived>) {
           ...d.gradients.slice(0, 3).map((g) =>
             h('div', {
               class: 'gradient-bar',
-              style: { background: g.css },
+              style: { backgroundImage: g.css },
               title: 'Click to copy CSS',
               onClick: () => copyToClipboard(g.css),
             }),
